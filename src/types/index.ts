@@ -2,24 +2,24 @@ export type DocumentType = "invoice" | "contract"
 
 export interface Invoice {
   id: number
-  invoice_id: string
-  seller_name: string
-  seller_address: string
-  tax_id: string
-  subtotal_amount: number
-  tax_amount: number
-  summary: string
+  invoice_id: string | null
+  seller_name: string | null
+  seller_address: string | null
+  tax_id: string | null
+  subtotal_amount: number | null
+  tax_amount: number | null
+  summary: string | null
   created_at: string
-  updated_at?: string
+  updated_at?: string | null
 }
 
 export interface Contract {
   id: number
-  contract_id: string
-  summary: string
-  text: string
+  contract_id: string | null
+  summary: string | null
+  text: string | null
   created_at: string
-  updated_at?: string
+  updated_at?: string | null
 }
 
 export interface UploadResponse<T = Invoice | Contract> {

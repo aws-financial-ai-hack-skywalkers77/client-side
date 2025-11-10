@@ -47,8 +47,8 @@ export function Contracts() {
 
   const handleViewDetails = useCallback(async (contract: Contract) => {
     try {
-      const metadata = await getContractById(contract.contract_id)
-      setDetailsTitle(`Contract ${metadata.contract_id}`)
+      const metadata = await getContractById(contract.id)
+      setDetailsTitle(`Contract ${metadata.contract_id ?? "Unknown"}`)
       setDetailsData(metadata)
       setDetailsOpen(true)
     } catch (error) {
@@ -68,6 +68,7 @@ export function Contracts() {
         onPageChange={setPage}
         onViewDetails={handleViewDetails}
         searchTerm={searchTerm}
+        onRowClick={handleViewDetails}
       />
 
       <DetailsModal

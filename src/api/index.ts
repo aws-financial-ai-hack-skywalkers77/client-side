@@ -35,9 +35,9 @@ export async function getInvoices(params?: {
   return response.data
 }
 
-export async function getInvoiceById(invoiceId: string): Promise<Invoice> {
+export async function getInvoiceById(id: number): Promise<Invoice> {
   const response = await apiClient.get<{ success: boolean; metadata: Invoice }>(
-    `/invoices/${invoiceId}`,
+    `/invoices/${id}`,
   )
   return response.data.metadata
 }
@@ -52,11 +52,11 @@ export async function getContracts(params?: {
   return response.data
 }
 
-export async function getContractById(contractId: string): Promise<Contract> {
+export async function getContractById(id: number): Promise<Contract> {
   const response = await apiClient.get<{
     success: boolean
     metadata: Contract
-  }>(`/contracts/${contractId}`)
+  }>(`/contracts/${id}`)
   return response.data.metadata
 }
 
