@@ -120,16 +120,16 @@ export function Dashboard() {
   }, [contracts, invoices, searchTerm])
 
   const handleViewDetails = useCallback(
-    async (type: DocumentType, id: string) => {
+    async (type: DocumentType, id: number) => {
       setLoadingDetails(true)
       try {
         if (type === "invoice") {
           const metadata = await getInvoiceById(id)
-          setDetailsTitle(`Invoice ${metadata.invoice_id}`)
+          setDetailsTitle(`Invoice ${metadata.invoice_id ?? "Unknown"}`)
           setDetailsData(metadata)
         } else {
           const metadata = await getContractById(id)
-          setDetailsTitle(`Contract ${metadata.contract_id}`)
+          setDetailsTitle(`Contract ${metadata.contract_id ?? "Unknown"}`)
           setDetailsData(metadata)
         }
         setDetailsOpen(true)
@@ -246,8 +246,8 @@ export function Dashboard() {
                         <div>
                           <p className="text-sm font-medium text-foreground">
                             {item.type === "invoice"
-                              ? item.record.invoice_id
-                              : item.record.contract_id}
+                              ? item.record.invoice_id ?? "Unknown Invoice"
+                              : item.record.contract_id ?? "Unknown Contract"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {item.type === "invoice"
@@ -266,9 +266,7 @@ export function Dashboard() {
                           onClick={() =>
                             handleViewDetails(
                               item.type,
-                              item.type === "invoice"
-                                ? item.record.invoice_id
-                                : item.record.contract_id,
+                              item.record.id,
                             )
                           }
                           disabled={loadingDetails}

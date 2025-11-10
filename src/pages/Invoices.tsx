@@ -47,8 +47,8 @@ export function Invoices() {
 
   const handleViewDetails = useCallback(async (invoice: Invoice) => {
     try {
-      const metadata = await getInvoiceById(invoice.invoice_id)
-      setDetailsTitle(`Invoice ${metadata.invoice_id}`)
+      const metadata = await getInvoiceById(invoice.id)
+      setDetailsTitle(`Invoice ${metadata.invoice_id ?? "Unknown"}`)
       setDetailsData(metadata)
       setDetailsOpen(true)
     } catch (error) {
@@ -68,6 +68,7 @@ export function Invoices() {
         onPageChange={setPage}
         onViewDetails={handleViewDetails}
         searchTerm={searchTerm}
+        onRowClick={handleViewDetails}
       />
 
       <DetailsModal
