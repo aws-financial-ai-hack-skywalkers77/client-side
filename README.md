@@ -1,15 +1,18 @@
 # DocuFlow Frontend
 
-DocuFlow is the award-ready intelligence layer for finance teams who live inside PDFs. Built with Vite, React, and TypeScript, the frontend turns raw invoices and contracts into auditor-ready insights, pairing real-time analytics with conversational AI so analysts can move from ingestion to investigation without leaving the browser.
+[![Product Demo](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://www.youtube.com/watch?v=VeF_WH0lBcg)
+[![Pitch Deck](https://docs.google.com/presentation/d/1-4UzFsEGc-YEsawkF1TZr6JJp8wF3YZD3iYsPQI4PLo/edit?usp=sharing)
+
+DocuFlow is the intelligence layer for finance teams who live inside PDFs. Built with Vite, React, and TypeScript, the frontend turns raw invoices and contracts into auditor-ready insights, pairing real-time analytics with conversational AI so analysts can move from ingestion to investigation without leaving the browser.
 
 ---
 
-## Why It Wins
+## What It Solves
 
-- **Instant understanding for auditors** — Dashboard cards, exception heatmaps, and inline AI summaries surface the “so what?” behind every upload.  
-- **AI that is workflow-native** — Gemini 2.5 Pro powers contextual chat, inline Q&A, and tailored prompts tied to each document row. No context switching, no copy/paste gymnastics.  
-- **Landing AI ADE pipeline visualised** — Users see progress from ingestion through ADE Parse/Extract and embedding generation, mirroring the production data path so stakeholders trust the automation.  
-- **Composable design system** — A shadcn-inspired component library (`src/components/ui`) keeps the experience consistent, accessible, and easy to white-label.
+- **Accelerates audit readiness** — Dashboard cards, exception heatmaps, and inline AI summaries surface the “so what?” behind every upload.  
+- **Keeps AI in the workflow** — Gemini 2.5 Pro powers contextual chat, inline Q&A, and tailored prompts tied to each document row. No context switching, no copy/paste gymnastics.  
+- **Shows the end-to-end pipeline** — Users see progress from ingestion through ADE Parse/Extract and embedding generation, mirroring the production data path so stakeholders trust the automation.  
+- **Ships with a composable design system** — The shadcn-inspired component library (`src/components/ui`) keeps the experience consistent, accessible, and easy to white-label.
 
 ---
 
@@ -31,6 +34,8 @@ The frontend orchestrates three core lanes that mirror the system diagram shared
    - Shared type guards live in `src/types`, ensuring the UI trusts every payload before rendering.
 
 > **Data flow recap:** Client uploads ➜ Landing AI ADE Parse ➜ ADE Extract ➜ Gemini Embedding 004 ➜ Embeddings stored in Postgres ➜ Gemini 2.5 Pro serves conversational answers back to the Dashboard and row-level AI buttons. The UI reflects each phase with optimistic status badges and retry affordances.
+
+![DocuFlow architecture diagram](./docs/LandingAI_DocuFlow_Architecture.png)
 
 ---
 
