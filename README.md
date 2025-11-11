@@ -1,11 +1,45 @@
 # DocuFlow Frontend
 
 [![Product Demo](https://img.shields.io/badge/Demo-YouTube-red?logo=youtube)](https://www.youtube.com/watch?v=VeF_WH0lBcg)
-[![Pitch Deck](https://docs.google.com/presentation/d/1-4UzFsEGc-YEsawkF1TZr6JJp8wF3YZD3iYsPQI4PLo/edit?usp=sharing)
+[![Pitch Deck](https://img.shields.io/badge/Slide%20Deck-Google%20Slides-34A853?logo=google%20slides&logoColor=white)](https://docs.google.com/presentation/d/1-4UzFsEGc-YEsawkF1TZr6JJp8wF3YZD3iYsPQI4PLo/edit?usp=sharing)
 
 DocuFlow is the intelligence layer for finance teams who live inside PDFs. Built with Vite, React, and TypeScript, the frontend turns raw invoices and contracts into auditor-ready insights, pairing real-time analytics with conversational AI so analysts can move from ingestion to investigation without leaving the browser.
 
 ---
+
+## Problem Clarity & Domain Relevance
+
+- **Focused pain point:** Finance teams drown in unstructured PDFs; DocuFlow centralises upload, validation, and AI-assisted review for invoices and contracts.  
+- **Regulated workflows:** Language, badges, and role-tailored dashboards mirror audit, compliance, and advisory responsibilities for auditors, chartered accountants, compliance officers, and consultants.  
+- **Live data hooks:** The frontend binds directly to the FastAPI pipeline, surfacing ADE extraction, Gemini embeddings, and Postgres storage health so reviewers understand document lineage.
+
+## Depth of ADE Integration & Technical Implementation
+
+- **ADE-first pipeline:** `UploadForm` sends PDFs through Landing AI ADE Parse/Extract before invoking Gemini Text Embedding 004 and syncing to Postgres. Status states render in `DashboardCards` and workflow summaries.  
+- **Typed gateway:** `src/api/index.ts` encapsulates ADE and Gemini requests with TypeScript guards, ensuring the UI only renders validated payloads.  
+- **Visual traceability:** The architecture diagram (below) reflects the exact ADE loop plus Gemini enrichment, while inline badges report extraction state per document.
+
+## Accuracy, Reliability & Performance
+
+- **Metadata fidelity:** `InvoiceList`, `ContractList`, and `DetailsModal` display ADE-generated metadata with timestamps, seller/vendor identifiers, and extraction summaries.  
+- **Health monitoring:** API health polling (30-second cadence) surfaces degraded or offline states with color-coded badges and fallbacks.  
+- **Error resilience:** Upload validation, toast notifications, and retry flows guard against malformed PDFs or network interruptions; optimistic UI keeps users informed without hiding failures.
+
+## Usability & Workflow Design
+
+- **Role-aware onboarding:** `RoleSelection` maps users to tailored dashboard messaging, with “Coming Soon” indicators for future personas.  
+- **AI in-context:** `AIChatPanel` anchors Gemini 2.5 Pro responses to selected invoices/contracts, providing jump links to tables and workflow summaries.  
+- **Actionable dashboards:** KPI cards, recent upload feeds, SLA panels, and workflow guidance combine to guide analysts from ingestion to exception handling in a single view.
+
+## Real-World Feasibility & 90-Day Pilot Path
+
+- **Deployment-ready stack:** Vite + React + Tailwind builds into a static bundle deployable on Cloudflare Pages, Vercel, or S3/CloudFront.  
+- **Configurable integrations:** `.env` variables switch API backends; ADE endpoints and Gemini keys can be rotated without code changes.  
+- **Pilot roadmap:** Week 0–2 environment setup; week 3–6 targeted pilot with two finance personas; week 7–9 expand to compliance plus production hardening (monitoring, RBAC, audit logs).
+
+## Presentation & Demo Assets
+- **Product demo:** Watch the narrated walkthrough covering upload, ADE extraction, and AI insights.
+- **Pitch deck:** Review the complementary slide narrative covering problem statement, architecture, and pilot milestones.
 
 ## What It Solves
 
