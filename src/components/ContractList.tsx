@@ -1,5 +1,5 @@
-import { useMemo } from "react"
-import { FileText, FileText as TextIcon, AlignLeft, Calendar, AlertCircle, Loader2 } from "lucide-react"
+import { useMemo, useState } from "react"
+import { FileText, FileText as TextIcon, AlignLeft, Calendar, AlertCircle, Loader2, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -7,6 +7,8 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import type { Contract } from "@/types"
+import { InlineQueryCell, InlineQueryOverlay } from "@/components/InlineQueryCell"
+import { queryContractAnalytics } from "@/api"
 
 type ContractListProps = {
   contracts: Contract[]
@@ -42,10 +44,18 @@ const formatDate = (dateString: string | undefined | null): string => {
 }
 
 // Truncate text with ellipsis
-const truncate = (text: string, maxLength: number): string => {
+const truncate = (text: string | null | undefined, maxLength: number): string => {
   if (!text) return ""
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + "..."
+}
+
+const getContractLabel = (contract: Contract): string => {
+  const base =
+    contract.contract_id?.trim() && contract.contract_id.trim().length > 0
+      ? contract.contract_id.trim()
+      : `Contract #${contract.id}`
+  return truncate(base, 22)
 }
 
 // Not Available component
@@ -63,7 +73,7 @@ export function ContractList({
   page,
   pageSize,
   onPageChange,
-  onViewDetails,
+  onViewDetails: _onViewDetails,
   searchTerm = "",
   onRowClick,
 }: ContractListProps) {
@@ -82,6 +92,7 @@ export function ContractList({
   }, [contracts, searchTerm])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const [activeQuery, setActiveQuery] = useState<{ id: number; anchor: DOMRect } | null>(null)
 
   return (
     <div className="w-full">
@@ -94,7 +105,7 @@ export function ContractList({
 
       <Card className="border-border shadow-sm bg-card">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto overflow-y-visible">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
@@ -122,12 +133,15 @@ export function ContractList({
                       <span>Updated</span>
                     </div>
                   </th>
+                  <th className="w-32 px-6 py-4 text-right text-sm font-medium text-muted-foreground bg-transparent">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Loading contracts...</span>
@@ -138,7 +152,7 @@ export function ContractList({
                   filteredContracts.map((contract) => (
                     <tr
                       key={contract.id}
-                      className="cursor-pointer transition-colors hover:bg-secondary/20 border-b border-border/30 last:border-b-0"
+                      className="relative cursor-pointer transition-colors hover:bg-secondary/20 border-b border-border/30 last:border-b-0"
                       onClick={() => onRowClick?.(contract)}
                     >
                       {/* Contract ID Column */}
@@ -187,11 +201,41 @@ export function ContractList({
                           </span>
                         )}
                       </td>
+
+                      {/* Action Column */}
+                      <td className="relative px-6 py-4 text-right">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="group gap-3 rounded-full border-primary/40 bg-primary/5 px-3 py-2 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect()
+                            setActiveQuery((current) =>
+                              current?.id === contract.id ? null : { id: contract.id, anchor: rect },
+                            )
+                          }}
+                          disabled={loading}
+                        >
+                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-primary/20">
+                            <Sparkles className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="flex flex-col items-start leading-tight">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                              DocuFlow AI
+                            </span>
+                            <span className="text-xs font-medium">
+                              Ask about {getContractLabel(contract)}
+                            </span>
+                          </span>
+                        </Button>
+                      </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={5} className="px-6 py-12 text-center text-muted-foreground">
                       No contracts found for the current filters.
                     </td>
                   </tr>
@@ -201,6 +245,29 @@ export function ContractList({
           </div>
         </CardContent>
       </Card>
+
+      {activeQuery ? (
+        <InlineQueryOverlay
+          anchor={{
+            top: activeQuery.anchor.top,
+            bottom: activeQuery.anchor.bottom,
+            left: activeQuery.anchor.left,
+            width: activeQuery.anchor.width,
+          }}
+          onDismiss={() => setActiveQuery(null)}
+        >
+          <InlineQueryCell
+            title="Contract Analytics"
+            description="Ask a question about this contract to surface AI-driven insights."
+            placeholder="Ask about this contract..."
+            onDismiss={() => setActiveQuery(null)}
+            onSubmit={async (prompt) => {
+              const response = await queryContractAnalytics(activeQuery.id, prompt)
+              return response
+            }}
+          />
+        </InlineQueryOverlay>
+      ) : null}
 
       <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <span>

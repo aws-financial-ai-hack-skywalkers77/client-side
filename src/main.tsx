@@ -6,13 +6,16 @@ import { Toaster } from "sonner"
 import "./index.css"
 import App from "./App.tsx"
 import { ThemeProvider } from "./context/ThemeContext"
+import { WorkflowReportProvider } from "./context/WorkflowReportContext"
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter>
       <ThemeProvider>
-        <App />
-        <Toaster position="top-right" richColors />
+        <WorkflowReportProvider>
+          <App />
+          <Toaster position="top-right" richColors />
+        </WorkflowReportProvider>
       </ThemeProvider>
     </BrowserRouter>
   </StrictMode>,

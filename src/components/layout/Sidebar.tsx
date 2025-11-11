@@ -1,11 +1,5 @@
 import { NavLink } from "react-router-dom"
-import {
-  FileText,
-  FileSpreadsheet,
-  LayoutDashboard,
-  Settings,
-  Upload,
-} from "lucide-react"
+import { BarChart3, FileText, FileSpreadsheet, LayoutDashboard, Settings, Upload } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -14,6 +8,7 @@ const navItems = [
   { to: "/upload", label: "Upload", icon: Upload },
   { to: "/invoices", label: "Invoices", icon: FileSpreadsheet },
   { to: "/contracts", label: "Contracts", icon: FileText },
+  { to: "/reports", label: "Reports", icon: BarChart3 },
   { to: "/settings", label: "Settings", icon: Settings },
 ]
 

@@ -6,6 +6,7 @@ import { Upload } from "@/pages/Upload"
 import { Invoices } from "@/pages/Invoices"
 import { Contracts } from "@/pages/Contracts"
 import { Settings } from "@/pages/Settings"
+import { Reports } from "@/pages/Reports"
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="upload" element={<Upload />} />
         <Route path="invoices" element={<Invoices />} />
         <Route path="contracts" element={<Contracts />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

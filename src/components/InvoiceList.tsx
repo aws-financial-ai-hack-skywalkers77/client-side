@@ -1,5 +1,5 @@
-import { useMemo } from "react"
-import { FileText, Building2, Hash, DollarSign, MapPin, FileText as SummaryIcon, Calendar, AlertCircle, Loader2 } from "lucide-react"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { FileText, Building2, Hash, DollarSign, MapPin, FileText as SummaryIcon, Calendar, AlertCircle, Loader2, Sparkles } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -7,6 +7,8 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import type { Invoice } from "@/types"
+import { InlineQueryCell, InlineQueryOverlay } from "@/components/InlineQueryCell"
+import { queryInvoiceAnalytics } from "@/api"
 
 type InvoiceListProps = {
   invoices: Invoice[]
@@ -18,6 +20,10 @@ type InvoiceListProps = {
   onViewDetails: (invoice: Invoice) => void
   searchTerm?: string
   onRowClick?: (invoice: Invoice) => void
+  selectable?: boolean
+  selectedIds?: number[]
+  onToggleSelect?: (invoice: Invoice, selected: boolean) => void
+  onToggleSelectAll?: (invoices: Invoice[], selected: boolean) => void
 }
 
 // Check if value is null or empty
@@ -53,10 +59,18 @@ const formatDate = (dateString: string | undefined | null): string => {
 }
 
 // Truncate text with ellipsis
-const truncate = (text: string, maxLength: number): string => {
+const truncate = (text: string | null | undefined, maxLength: number): string => {
   if (!text) return ""
   if (text.length <= maxLength) return text
   return text.slice(0, maxLength) + "..."
+}
+
+const getInvoiceLabel = (invoice: Invoice): string => {
+  const base =
+    invoice.invoice_id?.trim() && invoice.invoice_id.trim().length > 0
+      ? invoice.invoice_id.trim()
+      : `Invoice #${invoice.id}`
+  return truncate(base, 22)
 }
 
 // Not Available component
@@ -74,9 +88,13 @@ export function InvoiceList({
   page,
   pageSize,
   onPageChange,
-  onViewDetails,
+  onViewDetails: _onViewDetails,
   searchTerm = "",
   onRowClick,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
+  onToggleSelectAll,
 }: InvoiceListProps) {
   const filteredInvoices = useMemo(() => {
     if (!searchTerm) return invoices
@@ -95,6 +113,21 @@ export function InvoiceList({
   }, [invoices, searchTerm])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const [activeQuery, setActiveQuery] = useState<{ id: number; anchor: DOMRect } | null>(null)
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  const headerCheckboxRef = useRef<HTMLInputElement>(null)
+  const selectedOnPage = useMemo(
+    () => filteredInvoices.filter((invoice) => selectedSet.has(invoice.id)).length,
+    [filteredInvoices, selectedSet],
+  )
+  const allOnPageSelected = filteredInvoices.length > 0 && selectedOnPage === filteredInvoices.length
+  const columnCount = selectable ? 9 : 8
+
+  useEffect(() => {
+    if (!selectable || !headerCheckboxRef.current) return
+    headerCheckboxRef.current.indeterminate =
+      selectedOnPage > 0 && selectedOnPage < filteredInvoices.length
+  }, [filteredInvoices.length, selectable, selectedOnPage])
 
   return (
     <div className="w-full">
@@ -107,10 +140,23 @@ export function InvoiceList({
 
       <Card className="border-border shadow-sm bg-card">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto overflow-y-visible">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border/50">
+                  {selectable ? (
+                    <th className="w-12 px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                      <input
+                        ref={headerCheckboxRef}
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                        checked={filteredInvoices.length > 0 && allOnPageSelected}
+                        onChange={(event) =>
+                          onToggleSelectAll?.(filteredInvoices, event.target.checked)
+                        }
+                      />
+                    </th>
+                  ) : null}
                   <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
@@ -153,12 +199,15 @@ export function InvoiceList({
                       <span>Updated</span>
                     </div>
                   </th>
+                  <th className="w-32 px-6 py-4 text-right text-sm font-medium text-muted-foreground bg-transparent">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/50">
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={columnCount} className="px-6 py-12 text-center text-muted-foreground">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Loading invoices...</span>
@@ -172,9 +221,20 @@ export function InvoiceList({
                     return (
                       <tr
                         key={invoice.id}
-                        className="cursor-pointer transition-colors hover:bg-secondary/20 border-b border-border/30 last:border-b-0"
+                        className="relative cursor-pointer transition-colors hover:bg-secondary/20 border-b border-border/30 last:border-b-0"
                         onClick={() => onRowClick?.(invoice)}
                       >
+                        {selectable ? (
+                          <td className="px-6 py-4">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                              checked={selectedSet.has(invoice.id)}
+                              onChange={(event) => onToggleSelect?.(invoice, event.target.checked)}
+                              onClick={(event) => event.stopPropagation()}
+                            />
+                          </td>
+                        ) : null}
                         {/* Invoice ID Column */}
                         <td className="px-6 py-4">
                           {isEmpty(invoice.invoice_id) ? (
@@ -256,12 +316,42 @@ export function InvoiceList({
                             </span>
                           )}
                         </td>
+
+                        {/* Action Column */}
+                        <td className="relative px-6 py-4 text-right">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="group gap-3 rounded-full border-primary/40 bg-primary/5 px-3 py-2 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect()
+                              setActiveQuery((current) =>
+                                current?.id === invoice.id ? null : { id: invoice.id, anchor: rect },
+                              )
+                            }}
+                            disabled={loading}
+                          >
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-primary/20">
+                              <Sparkles className="h-3.5 w-3.5" />
+                            </span>
+                            <span className="flex flex-col items-start leading-tight">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                                DocuFlow AI
+                              </span>
+                              <span className="text-xs font-medium">
+                                Ask about {getInvoiceLabel(invoice)}
+                              </span>
+                            </span>
+                          </Button>
+                        </td>
                       </tr>
                     )
                   })
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={columnCount} className="px-6 py-12 text-center text-muted-foreground">
                       No invoices found for the current filters.
                     </td>
                   </tr>
@@ -271,6 +361,29 @@ export function InvoiceList({
           </div>
         </CardContent>
       </Card>
+
+      {activeQuery ? (
+        <InlineQueryOverlay
+          anchor={{
+            top: activeQuery.anchor.top,
+            bottom: activeQuery.anchor.bottom,
+            left: activeQuery.anchor.left,
+            width: activeQuery.anchor.width,
+          }}
+          onDismiss={() => setActiveQuery(null)}
+        >
+          <InlineQueryCell
+            title="Invoice Analytics"
+            description="Ask about this invoice to surface AI-powered insights."
+            placeholder="Ask about this invoice..."
+            onDismiss={() => setActiveQuery(null)}
+            onSubmit={async (prompt) => {
+              const response = await queryInvoiceAnalytics(activeQuery.id, prompt)
+              return response
+            }}
+          />
+        </InlineQueryOverlay>
+      ) : null}
 
       <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
         <span>
