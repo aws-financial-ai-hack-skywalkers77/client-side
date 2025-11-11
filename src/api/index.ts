@@ -221,8 +221,8 @@ function normalizeInvoiceWorkflowReport(payload: unknown): InvoiceWorkflowReport
 }
 
 export async function runInvoiceWorkflow(invoiceIds: number[]): Promise<InvoiceWorkflowBatch> {
-  const response = await apiClient.post("/workflow/invoices", {
-    invoice_ids: invoiceIds,
+  const response = await apiClient.post("/analyze_invoice/" + invoiceIds[0], {
+    // invoice_ids: invoiceIds,
   })
   return normalizeInvoiceWorkflowPayload(response.data)
 }

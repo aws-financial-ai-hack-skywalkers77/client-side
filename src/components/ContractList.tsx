@@ -208,7 +208,7 @@ export function ContractList({
                           type="button"
                           size="sm"
                           variant="outline"
-                          className="group gap-3 rounded-full border-primary/40 bg-primary/5 px-3 py-2 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10"
+                          className="group gap-3 rounded-full border-primary/40 bg-primary/5 px-3 py-2 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-neutral-700"
                           onClick={(event) => {
                             event.stopPropagation()
                             const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect()
@@ -222,10 +222,10 @@ export function ContractList({
                             <Sparkles className="h-3.5 w-3.5" />
                           </span>
                           <span className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80 transition-colors group-hover:text-neutral-700">
                               DocuFlow AI
                             </span>
-                            <span className="text-xs font-medium">
+                            <span className="text-xs font-medium transition-colors group-hover:text-neutral-700">
                               Ask about {getContractLabel(contract)}
                             </span>
                           </span>

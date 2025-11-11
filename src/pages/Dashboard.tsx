@@ -152,17 +152,17 @@ export function Dashboard() {
         "Monitor audit readiness, flag compliance gaps, and review invoice/contract metadata in one workspace.",
     },
     charteredAccountant: {
-      title: "Chartered Accountant Workspace",
+      title: "Chartered Accountant Workspace | Coming Soon",
       subtitle:
         "Track tax documentation, invoices, and regulatory filings with real-time health indicators.",
     },
     complianceOfficer: {
-      title: "Compliance Oversight Hub",
+      title: "Compliance Oversight Hub | Coming Soon",
       subtitle:
         "Validate adherence to regulatory standards, review vendor risk, and ensure policy alignment.",
     },
     financialConsultant: {
-      title: "Financial Consultant Dashboard",
+      title: "Financial Consultant Dashboard | Coming Soon",
       subtitle:
         "Surface advisory insights, analyze spend patterns, and keep client documentation organised.",
     },

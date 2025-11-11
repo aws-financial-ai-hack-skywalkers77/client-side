@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 export type ProfessionalRole =
@@ -25,6 +26,7 @@ const roles: Array<{
   description: string
   icon: ComponentType<{ className?: string }>
   accent: string
+  status?: "available" | "comingSoon"
 }> = [
   {
     id: "auditor",
@@ -33,6 +35,7 @@ const roles: Array<{
     icon: ShieldCheck,
     accent:
       "from-white via-[#fff5e5] to-[#ffe5b8] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+    status: "available",
   },
   {
     id: "charteredAccountant",
@@ -41,6 +44,7 @@ const roles: Array<{
     icon: Calculator,
     accent:
       "from-white via-[#f9f4ff] to-[#ecdeff] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+    status: "comingSoon",
   },
   {
     id: "complianceOfficer",
@@ -49,6 +53,7 @@ const roles: Array<{
     icon: FileBadge,
     accent:
       "from-white via-[#fff2e9] to-[#ffd9c2] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+    status: "comingSoon",
   },
   {
     id: "financialConsultant",
@@ -57,6 +62,7 @@ const roles: Array<{
     icon: Briefcase,
     accent:
       "from-white via-[#ecfff4] to-[#c8f9dc] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+    status: "comingSoon",
   },
 ]
 
@@ -111,8 +117,16 @@ export function RoleSelection({ onSelect }: RoleSelectionProps) {
                   )}
                 />
               </div>
-              <CardTitle className="text-left text-2xl font-semibold text-slate-800 dark:text-slate-100">
-                {role.title}
+              <CardTitle className="flex items-center gap-2 text-left text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                <span>{role.title}</span>
+                {role.status === "comingSoon" ? (
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full border border-dashed border-primary/40 bg-white/70 px-3 py-1 text-xs uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm dark:border-white/20 dark:bg-white/10 dark:text-white"
+                  >
+                    Coming Soon
+                  </Badge>
+                ) : null}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-left text-sm text-slate-600 dark:text-slate-300">
