@@ -178,7 +178,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-gradient-to-br from-white via-[#fff4e5] to-[#ffe0b6] px-8 py-10 text-slate-900 shadow-xl dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 dark:text-slate-100">
+      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-gradient-to-br from-background via-primary/5 to-primary/10 px-8 py-10 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-widest text-primary">
@@ -190,13 +190,13 @@ export function Dashboard() {
           </div>
           <Button
             variant="outline"
-            className="border-primary/40 bg-white/70 text-primary shadow-sm hover:bg-white dark:bg-white/5 dark:text-white"
+            className="border-primary/40 bg-background/80 text-primary shadow-sm hover:bg-background hover:text-primary"
             onClick={() => setSelectedRole(null)}
           >
             Switch role
           </Button>
         </div>
-        <p className="max-w-3xl text-sm text-slate-600 dark:text-slate-300">
+        <p className="max-w-3xl text-sm text-muted-foreground">
           Each section below reflects live data retrieved from the FastAPI backend. Upload documents
           to refresh invoice and contract tables, and use the AI assistant to explore vendor risk,
           tax considerations, or compliance narratives.

@@ -34,7 +34,7 @@ const roles: Array<{
     description: "Comprehensive auditing workflows and risk assessment tools",
     icon: ShieldCheck,
     accent:
-      "from-white via-[#fff5e5] to-[#ffe5b8] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+      "from-background via-primary/5 to-primary/10 dark:from-background dark:via-primary/10 dark:to-primary/5",
     status: "available",
   },
   {
@@ -43,7 +43,7 @@ const roles: Array<{
     description: "Financial reporting, tax planning, and compliance management",
     icon: Calculator,
     accent:
-      "from-white via-[#f9f4ff] to-[#ecdeff] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+      "from-background via-accent/5 to-accent/10 dark:from-background dark:via-accent/10 dark:to-accent/5",
     status: "comingSoon",
   },
   {
@@ -52,7 +52,7 @@ const roles: Array<{
     description: "Regulatory compliance tracking and documentation",
     icon: FileBadge,
     accent:
-      "from-white via-[#fff2e9] to-[#ffd9c2] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+      "from-background via-secondary/30 to-secondary/50 dark:from-background dark:via-secondary/20 dark:to-secondary/10",
     status: "comingSoon",
   },
   {
@@ -61,7 +61,7 @@ const roles: Array<{
     description: "Advisory services and strategic financial planning",
     icon: Briefcase,
     accent:
-      "from-white via-[#ecfff4] to-[#c8f9dc] dark:from-slate-900 dark:via-slate-800 dark:to-slate-900",
+      "from-background via-muted/50 to-muted/30 dark:from-background dark:via-muted/30 dark:to-muted/20",
     status: "comingSoon",
   },
 ]
@@ -101,35 +101,31 @@ export function RoleSelection({ onSelect }: RoleSelectionProps) {
             className={cn(
               "group relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br shadow-lg",
               role.accent,
-              "transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-[0_20px_45px_-25px_rgba(255,182,70,0.75)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
             )}
           >
             <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full border border-white/40 bg-white/30 blur-3xl dark:border-white/5 dark:bg-white/5" />
             <CardHeader className="flex flex-row items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100/80 backdrop-blur dark:bg-white/10">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 backdrop-blur">
                 <role.icon
                   className={cn(
-                    "h-6 w-6",
-                    role.id === "auditor" && "text-sky-400",
-                    role.id === "charteredAccountant" && "text-fuchsia-400",
-                    role.id === "complianceOfficer" && "text-orange-400",
-                    role.id === "financialConsultant" && "text-emerald-400",
+                    "h-6 w-6 text-primary",
                   )}
                 />
               </div>
-              <CardTitle className="flex items-center gap-2 text-left text-2xl font-semibold text-slate-800 dark:text-slate-100">
+              <CardTitle className="flex items-center gap-2 text-left text-2xl font-semibold text-foreground">
                 <span>{role.title}</span>
                 {role.status === "comingSoon" ? (
                   <Badge
                     variant="secondary"
-                    className="rounded-full border border-dashed border-primary/40 bg-white/70 px-3 py-1 text-xs uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm dark:border-white/20 dark:bg-white/10 dark:text-white"
+                    className="rounded-full border border-dashed border-primary/40 bg-background/80 px-3 py-1 text-xs uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm"
                   >
                     Coming Soon
                   </Badge>
                 ) : null}
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-left text-sm text-slate-600 dark:text-slate-300">
+            <CardContent className="text-left text-sm text-muted-foreground">
               {role.description}
             </CardContent>
           </Card>

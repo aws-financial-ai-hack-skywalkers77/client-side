@@ -202,7 +202,7 @@ export function Invoices() {
           </span>
         </div>
         {workflowRunning ? (
-          <div className="space-y-2 rounded-xl border border-primary/30 bg-white/60 p-4 shadow-sm dark:bg-slate-950/40">
+          <div className="space-y-2 rounded-xl border border-primary/30 bg-card/80 p-4 shadow-sm backdrop-blur-sm">
             <Progress value={workflowProgress} />
             <p className="text-xs text-muted-foreground">
               Orchestrating document checks, rules evaluation, and contract clause matching...
