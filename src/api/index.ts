@@ -147,6 +147,13 @@ function normalizeInvoiceWorkflowPayload(payload: unknown): InvoiceWorkflowBatch
         ? batchPayload.errors as Array<{ invoice_db_id: number; invoice_id: string; error: string }>
         : undefined
 
+      // Extract s3_url from the first report if available
+      const firstReport = batchPayload.reports[0]
+      const s3Url = firstReport && typeof firstReport === "object" && firstReport !== null
+        ? (firstReport as Record<string, unknown>).s3_url
+        : undefined
+      const s3UrlString = typeof s3Url === "string" ? s3Url : undefined
+
       return {
         generated_at: new Date().toISOString(),
         invoices: reports,
@@ -156,6 +163,7 @@ function normalizeInvoiceWorkflowPayload(payload: unknown): InvoiceWorkflowBatch
         invoices_in_queue: typeof batchPayload.invoices_in_queue === "number" ? batchPayload.invoices_in_queue : undefined,
         violations_detected: typeof batchPayload.violations_detected === "number" ? batchPayload.violations_detected : undefined,
         next_run_scheduled_in_hours: typeof batchPayload.next_run_scheduled_in_hours === "number" ? batchPayload.next_run_scheduled_in_hours : undefined,
+        s3_url: s3UrlString,
         metadata: {
           status: batchPayload.status,
         },

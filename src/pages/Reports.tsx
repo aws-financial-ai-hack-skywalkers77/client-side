@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { AlertTriangle, ArrowLeft, Clock, Download, FileText, Link2, TrendingUp, Trash2, Eye } from "lucide-react"
+import { AlertTriangle, ArrowLeft, Clock, Download, FileText, Link2, TrendingUp, Eye } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -65,7 +65,7 @@ type FlattenedClause = InvoiceWorkflowContractClause & {
 
 export function Reports() {
   const navigate = useNavigate()
-  const { invoiceBatch, clearReportData } = useWorkflowReport()
+  const { invoiceBatch } = useWorkflowReport()
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("all")
 
   const hasData = invoiceBatch && invoiceBatch.invoices.length > 0
@@ -273,10 +273,12 @@ export function Reports() {
             <ArrowLeft className="h-4 w-4" />
             Back to invoices
           </Button>
-          <Button variant="outline" onClick={clearReportData} className="gap-2">
-            <Trash2 className="h-4 w-4" />
-            Clear Report
-          </Button>
+          {invoiceBatch?.s3_url && (
+            <Button variant="outline" onClick={() => window.open(invoiceBatch.s3_url, "_blank")} className="gap-2">
+              <Eye className="h-4 w-4" />
+              View
+            </Button>
+          )}
           <Button onClick={handleExportPdf} className="gap-2">
             <Download className="h-4 w-4" />
             Export PDF

@@ -120,6 +120,7 @@ export interface InvoiceWorkflowBatch {
   invoices_in_queue?: number
   violations_detected?: number
   next_run_scheduled_in_hours?: number
+  s3_url?: string
 }
 
 export interface UploadResponse<T = Invoice | Contract> {
