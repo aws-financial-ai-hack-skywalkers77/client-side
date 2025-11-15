@@ -26,26 +26,50 @@ import {
 } from "@/api"
 import type { Contract, DocumentType, Invoice } from "@/types"
 import type { LayoutContextValue } from "@/components/layout/AppLayout"
+import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/lib/storage"
 
 type RecentItem =
   | { type: "invoice"; record: Invoice }
   | { type: "contract"; record: Contract }
 
+type DashboardPageState = {
+  invoices: Invoice[]
+  contracts: Contract[]
+  invoiceTotal: number
+  contractTotal: number
+  selectedRole: ProfessionalRole | null
+}
+
 export function Dashboard() {
   const navigate = useNavigate()
   const { searchTerm } = useOutletContext<LayoutContextValue>()
-  const [invoices, setInvoices] = useState<Invoice[]>([])
-  const [contracts, setContracts] = useState<Contract[]>([])
-  const [invoiceTotal, setInvoiceTotal] = useState(0)
-  const [contractTotal, setContractTotal] = useState(0)
+  
+  // Load persisted state from localStorage
+  const persistedState = loadFromStorage<DashboardPageState>(STORAGE_KEYS.DASHBOARD)
+  
+  const [invoices, setInvoices] = useState<Invoice[]>(persistedState?.invoices ?? [])
+  const [contracts, setContracts] = useState<Contract[]>(persistedState?.contracts ?? [])
+  const [invoiceTotal, setInvoiceTotal] = useState(persistedState?.invoiceTotal ?? 0)
+  const [contractTotal, setContractTotal] = useState(persistedState?.contractTotal ?? 0)
+  const [selectedRole, setSelectedRole] = useState<ProfessionalRole | null>(persistedState?.selectedRole ?? null)
   const [healthStatus, setHealthStatus] = useState<"healthy" | "degraded" | "down">("down")
   const [lastHealthCheck, setLastHealthCheck] = useState<string>()
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [detailsData, setDetailsData] = useState<unknown>(null)
   const [detailsTitle, setDetailsTitle] = useState("Document Details")
   const [loadingDetails, setLoadingDetails] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<ProfessionalRole | null>(null)
   const workflowSummaryRef = useRef<HTMLDivElement>(null)
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    saveToStorage<DashboardPageState>(STORAGE_KEYS.DASHBOARD, {
+      invoices,
+      contracts,
+      invoiceTotal,
+      contractTotal,
+      selectedRole,
+    })
+  }, [invoices, contracts, invoiceTotal, contractTotal, selectedRole])
 
   const loadInvoices = useCallback(async () => {
     try {
@@ -177,11 +201,11 @@ export function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 rounded-3xl border border-border bg-gradient-to-br from-background via-primary/5 to-primary/10 px-8 py-10 shadow-xl">
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 rounded-3xl border border-border dark:border-[#37475A]/50 bg-gradient-to-br from-background via-primary/5 to-primary/10 dark:from-[#1A232E] dark:via-[#FF9900]/5 dark:to-[#FF9900]/10 px-10 py-12 shadow-xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-primary">
+            <p className="text-xs uppercase tracking-widest text-[#232F3E] dark:text-[#FFB84D]">
               {roleCopy[selectedRole].title}
             </p>
             <h2 className="mt-2 text-3xl font-semibold leading-tight">
@@ -190,7 +214,7 @@ export function Dashboard() {
           </div>
           <Button
             variant="outline"
-            className="border-primary/40 bg-background/80 text-primary shadow-sm hover:bg-background hover:text-primary"
+            className="border-[#232F3E]/40 dark:border-[#FF9900]/40 bg-background/80 dark:bg-[#1A232E]/80 text-[#232F3E] dark:text-[#FFB84D] shadow-sm hover:bg-background dark:hover:bg-[#1A232E] hover:text-[#232F3E] dark:hover:text-[#FFB84D]"
             onClick={() => setSelectedRole(null)}
           >
             Switch role
@@ -212,8 +236,8 @@ export function Dashboard() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+        <Card className="border-border shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6">
             <div>
               <CardTitle className="text-lg font-semibold">Recent uploads</CardTitle>
               <CardDescription>
@@ -222,9 +246,9 @@ export function Dashboard() {
             </div>
             <Badge variant="secondary">{recentUploads.length} in view</Badge>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6">
             <ScrollArea className="max-h-[360px]">
-              <div className="space-y-3">
+              <div className="space-y-3 pr-4">
                 {recentUploads.length === 0 ? (
                   <div className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
                     No documents matched the current search.
@@ -236,7 +260,7 @@ export function Dashboard() {
                       className="flex items-center justify-between rounded-lg border border-transparent bg-card px-4 py-3 transition hover:border-border"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FF9900]/10 dark:bg-[#FF9900]/20 text-[#FF9900] dark:text-[#FFB84D]">
                           {item.type === "invoice" ? (
                             <FileText className="h-5 w-5" />
                           ) : (
@@ -282,16 +306,16 @@ export function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-border">
-          <CardHeader>
+        <Card className="border-border shadow-sm">
+          <CardHeader className="px-6 pt-6">
             <CardTitle className="text-lg font-semibold">Processing SLA</CardTitle>
             <CardDescription>
               Recent upload turnaround time monitored every 30 seconds.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/20 p-4">
-              <Clock className="h-5 w-5 text-primary" />
+          <CardContent className="space-y-4 px-6 pb-6">
+            <div className="flex items-center gap-3 rounded-lg border border-border bg-secondary/20 p-5">
+              <Clock className="h-5 w-5 text-[#FF9900] dark:text-[#FFB84D]" />
               <div>
                 <p className="text-sm font-medium text-foreground">Average processing time</p>
                 <p className="text-xs text-muted-foreground">
@@ -321,8 +345,8 @@ export function Dashboard() {
         </Card>
       </div>
 
-      <Card className="border-border" ref={workflowSummaryRef}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <Card className="border-border shadow-sm" ref={workflowSummaryRef}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6">
           <div>
             <CardTitle className="text-lg font-semibold">Workflow analysis summary</CardTitle>
             <CardDescription>
@@ -335,8 +359,8 @@ export function Dashboard() {
               : "Awaiting uploads"}
           </Badge>
         </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-border bg-card p-5">
+        <CardContent className="grid gap-6 px-6 pb-6 md:grid-cols-2 xl:grid-cols-4">
+          <div className="rounded-xl border border-border bg-card p-6">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">
               Standards alignment
             </p>
@@ -404,15 +428,15 @@ export function Dashboard() {
             }
           }}
         />
-        <Card className="border-border">
-          <CardHeader>
+        <Card className="border-border shadow-sm">
+          <CardHeader className="px-6 pt-6">
             <CardTitle className="text-lg font-semibold">Workflow guidance</CardTitle>
             <CardDescription>
               Backend validation highlights whether vendor metadata aligns with governance controls.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <div className="rounded-lg border border-dashed border-border px-4 py-3">
+          <CardContent className="space-y-4 px-6 pb-6 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-border px-5 py-4">
               <p className="font-medium text-foreground">Vendor alignment status</p>
               <p>
                 When the backend flags a variance, you&apos;ll see it reflected in the metadata

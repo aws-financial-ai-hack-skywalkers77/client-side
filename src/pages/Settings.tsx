@@ -12,15 +12,15 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 
 export function Settings() {
   return (
-    <div className="space-y-6">
-      <Card className="border-border">
-        <CardHeader>
+    <div className="space-y-8">
+      <Card className="border-border shadow-sm">
+        <CardHeader className="px-6 pt-6">
           <CardTitle>Account preferences</CardTitle>
           <CardDescription>
             Configure your DocuFlow workspace preferences and notification defaults.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-6 md:grid-cols-2">
+        <CardContent className="grid gap-6 px-6 pb-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="display-name">Display name</Label>
             <Input id="display-name" placeholder="Avery Chen" />
@@ -47,14 +47,14 @@ export function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-border">
-        <CardHeader>
+      <Card className="border-border shadow-sm">
+        <CardHeader className="px-6 pt-6">
           <CardTitle>API credentials</CardTitle>
           <CardDescription>
             Rotate secrets for FastAPI integrations and regenerate access tokens.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 text-sm text-muted-foreground">
+        <CardContent className="grid gap-4 px-6 pb-6 text-sm text-muted-foreground">
           <p>
             Use the FastAPI server&rsquo;s <code>/health</code> endpoint to monitor availability.
             Regenerated tokens propagate instantly to Landing AI ADE workflows.

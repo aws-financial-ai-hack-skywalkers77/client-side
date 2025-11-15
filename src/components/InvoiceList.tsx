@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react"
-import { FileText, Building2, Hash, DollarSign, MapPin, FileText as SummaryIcon, Calendar, AlertCircle, Loader2, Sparkles } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { FileText, Building2, Hash, DollarSign, MapPin, FileText as SummaryIcon, Calendar, AlertCircle, Loader2, Sparkles, TrendingUp, CheckCircle2, XCircle, Eye } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -8,7 +8,9 @@ import {
 } from "@/components/ui/card"
 import type { Invoice } from "@/types"
 import { InlineQueryCell, InlineQueryOverlay } from "@/components/InlineQueryCell"
-import { queryInvoiceAnalytics } from "@/api"
+import { queryInvoiceAnalytics, getInvoiceDownloadUrl } from "@/api"
+import { useWorkflowReport } from "@/context/WorkflowReportContext"
+import { toast } from "sonner"
 
 type InvoiceListProps = {
   invoices: Invoice[]
@@ -73,6 +75,34 @@ const getInvoiceLabel = (invoice: Invoice): string => {
   return truncate(base, 22)
 }
 
+// Get risk level from percentage
+const getRiskLevel = (percentage: number | null | undefined): { level: "good" | "low" | "medium" | "high"; label: string } => {
+  if (percentage === null || percentage === undefined || percentage === 0) {
+    return { level: "good", label: "Good" }
+  }
+  if (percentage <= 30) {
+    return { level: "low", label: "Low" }
+  }
+  if (percentage <= 70) {
+    return { level: "medium", label: "Medium" }
+  }
+  return { level: "high", label: "High" }
+}
+
+// Get risk color classes
+const getRiskColorClasses = (level: "good" | "low" | "medium" | "high"): string => {
+  switch (level) {
+    case "good":
+      return "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+    case "low":
+      return "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
+    case "medium":
+      return "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
+    case "high":
+      return "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
+  }
+}
+
 // Not Available component
 const NotAvailable = () => (
   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -96,6 +126,33 @@ export function InvoiceList({
   onToggleSelect,
   onToggleSelectAll,
 }: InvoiceListProps) {
+  const { invoiceBatch } = useWorkflowReport()
+  
+  // Create a map of invoice_id to violations count for quick lookup
+  const violationsMap = useMemo(() => {
+    const map = new Map<string, number>()
+    if (invoiceBatch?.invoices) {
+      invoiceBatch.invoices.forEach((report) => {
+        const violationsCount = report.violations?.length ?? 0
+        map.set(report.invoice_id, violationsCount)
+      })
+    }
+    return map
+  }, [invoiceBatch])
+
+  // Check if invoice has been processed and has violations
+  const getMistakesStatus = useCallback((invoice: Invoice): "has-violations" | "no-violations" | "not-checked" => {
+    const invoiceId = invoice.invoice_id
+    if (!invoiceId) return "not-checked"
+    
+    // Check if invoice has been processed (exists in workflow batch)
+    const hasBeenProcessed = violationsMap.has(invoiceId)
+    if (!hasBeenProcessed) return "not-checked"
+    
+    const violationsCount = violationsMap.get(invoiceId) ?? 0
+    return violationsCount > 0 ? "has-violations" : "no-violations"
+  }, [violationsMap])
+
   const filteredInvoices = useMemo(() => {
     if (!searchTerm) return invoices
     const term = searchTerm.toLowerCase()
@@ -114,14 +171,56 @@ export function InvoiceList({
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
   const [activeQuery, setActiveQuery] = useState<{ id: number; anchor: DOMRect } | null>(null)
+  const [loadingPdfIds, setLoadingPdfIds] = useState<Set<number>>(new Set())
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
+  
+  // Handle PDF view with S3 presigned URL
+  const handleViewPdf = useCallback(async (invoiceId: number, event: React.MouseEvent) => {
+    event.stopPropagation()
+    
+    setLoadingPdfIds((prev) => {
+      // Check if already loading
+      if (prev.has(invoiceId)) return prev
+      const next = new Set(prev)
+      next.add(invoiceId)
+      return next
+    })
+    
+    try {
+      console.log("Fetching PDF URL for invoice ID:", invoiceId)
+      const response = await getInvoiceDownloadUrl(invoiceId)
+      console.log("PDF URL response:", response)
+      if (response.success && response.presigned_url) {
+        window.open(response.presigned_url, "_blank")
+      } else {
+        toast.error("Failed to retrieve PDF URL")
+      }
+    } catch (error: any) {
+      console.error("Error fetching PDF URL:", error)
+      console.error("Error response:", error?.response?.data)
+      console.error("Error status:", error?.response?.status)
+      console.error("Full error:", error)
+      // Error toast is already shown by API client interceptor, but add more context
+      if (error?.response?.status === 404) {
+        toast.error(`Invoice not found (ID: ${invoiceId})`)
+      } else if (error?.response?.status) {
+        toast.error(`Failed to load PDF (Status: ${error.response.status})`)
+      }
+    } finally {
+      setLoadingPdfIds((prev) => {
+        const next = new Set(prev)
+        next.delete(invoiceId)
+        return next
+      })
+    }
+  }, [])
   const headerCheckboxRef = useRef<HTMLInputElement>(null)
   const selectedOnPage = useMemo(
     () => filteredInvoices.filter((invoice) => selectedSet.has(invoice.id)).length,
     [filteredInvoices, selectedSet],
   )
   const allOnPageSelected = filteredInvoices.length > 0 && selectedOnPage === filteredInvoices.length
-  const columnCount = selectable ? 9 : 8
+  const columnCount = selectable ? 11 : 10
 
   useEffect(() => {
     if (!selectable || !headerCheckboxRef.current) return
@@ -131,21 +230,24 @@ export function InvoiceList({
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-foreground mb-1">Invoices</h1>
-        <p className="text-sm text-muted-foreground">
-          {filteredInvoices.length} of {total} records
-        </p>
+      <div className="mb-4 flex items-center justify-between border-b border-border pb-3 px-6">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground mb-0.5">Invoices</h1>
+          <p className="text-xs text-muted-foreground">
+            {filteredInvoices.length} of {total} records
+          </p>
+        </div>
       </div>
 
-      <Card className="border-border shadow-sm bg-card">
+      <div className="w-full">
+        <Card className="border-x-0 border-t-0 border-border shadow-none bg-card rounded-none">
         <CardContent className="p-0">
           <div className="relative overflow-x-auto overflow-y-visible">
-            <table className="w-full">
+            <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b border-border/50">
+                <tr className="bg-muted/40 border-b-2 border-border">
                   {selectable ? (
-                    <th className="w-12 px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                    <th className="w-12 px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border">
                       <input
                         ref={headerCheckboxRef}
                         type="checkbox"
@@ -157,57 +259,69 @@ export function InvoiceList({
                       />
                     </th>
                   ) : null}
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <FileText className="h-4 w-4" />
                       <span>Invoice ID</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-4 w-4" />
                       <span>Seller Name</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Hash className="h-4 w-4" />
                       <span>Tax ID</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-right text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-right text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center justify-end gap-2">
                       <DollarSign className="h-4 w-4" />
                       <span>Amount</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <MapPin className="h-4 w-4" />
                       <span>Address</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <SummaryIcon className="h-4 w-4" />
                       <span>Summary</span>
                     </div>
                   </th>
-                  <th className="px-6 py-4 text-left text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      <span>Risk %</span>
+                    </div>
+                  </th>
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <span>Mistakes</span>
+                    </div>
+                  </th>
+                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4" />
                       <span>Updated</span>
                     </div>
                   </th>
-                  <th className="w-32 px-6 py-4 text-right text-sm font-medium text-muted-foreground bg-transparent">
+                  <th className="w-32 px-3 py-2 text-right text-sm font-semibold text-foreground">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/50">
+              <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={columnCount} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">
                       <div className="flex items-center justify-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin" />
                         <span>Loading invoices...</span>
@@ -218,14 +332,16 @@ export function InvoiceList({
                   filteredInvoices.map((invoice) => {
                     const totalAmount = (invoice.subtotal_amount ?? 0) + (invoice.tax_amount ?? 0)
                     
+                    const riskInfo = getRiskLevel(invoice.risk_percentage)
+                    
                     return (
                       <tr
                         key={invoice.id}
-                        className="relative cursor-pointer transition-colors hover:bg-secondary/20 border-b border-border/30 last:border-b-0"
+                        className="relative cursor-pointer transition-colors hover:bg-muted/40 border-b border-border/50"
                         onClick={() => onRowClick?.(invoice)}
                       >
                         {selectable ? (
-                          <td className="px-6 py-4">
+                          <td className="px-3 py-2 border-r border-border">
                             <input
                               type="checkbox"
                               className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
@@ -236,7 +352,7 @@ export function InvoiceList({
                           </td>
                         ) : null}
                         {/* Invoice ID Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.invoice_id) ? (
                             <NotAvailable />
                           ) : (
@@ -245,12 +361,27 @@ export function InvoiceList({
                               <span className="text-sm font-medium text-foreground">
                                 {invoice.invoice_id}
                               </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="h-6 w-6 p-0 hover:bg-accent/10 hover:text-accent transition-colors disabled:opacity-50 ml-1"
+                                onClick={(event) => handleViewPdf(invoice.id, event)}
+                                disabled={loadingPdfIds.has(invoice.id) || loading}
+                                title="View PDF"
+                              >
+                                {loadingPdfIds.has(invoice.id) ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin text-accent" />
+                                ) : (
+                                  <Eye className="h-3.5 w-3.5 text-muted-foreground hover:text-accent transition-colors" />
+                                )}
+                              </Button>
                             </div>
                           )}
                         </td>
 
                         {/* Seller Name Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.seller_name) ? (
                             <NotAvailable />
                           ) : (
@@ -261,7 +392,7 @@ export function InvoiceList({
                         </td>
 
                         {/* Tax ID Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.tax_id) ? (
                             <NotAvailable />
                           ) : (
@@ -272,7 +403,7 @@ export function InvoiceList({
                         </td>
 
                         {/* Amount Column */}
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-3 py-2 text-right border-r border-border">
                           {isEmpty(invoice.subtotal_amount) && isEmpty(invoice.tax_amount) ? (
                             <div className="flex items-center justify-end">
                               <NotAvailable />
@@ -285,29 +416,90 @@ export function InvoiceList({
                         </td>
 
                         {/* Address Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.seller_address) ? (
                             <NotAvailable />
                           ) : (
-                            <span className="text-sm text-foreground">
+                            <span 
+                              className="text-sm text-foreground cursor-help" 
+                              title={invoice.seller_address ?? undefined}
+                            >
                               {truncate(invoice.seller_address, 40)}
                             </span>
                           )}
                         </td>
 
                         {/* Summary Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.summary) ? (
                             <NotAvailable />
                           ) : (
-                            <span className="text-sm text-foreground">
+                            <span 
+                              className="text-sm text-foreground cursor-help" 
+                              title={invoice.summary ?? undefined}
+                            >
                               {truncate(invoice.summary, 50)}
                             </span>
                           )}
                         </td>
 
+                        {/* Risk Percentage Column */}
+                        <td className="px-3 py-2 border-r border-border">
+                          {invoice.risk_percentage === null || invoice.risk_percentage === undefined ? (
+                            <NotAvailable />
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${getRiskColorClasses(riskInfo.level)}`}
+                              >
+                                {riskInfo.label}
+                              </span>
+                              <span className="text-sm font-medium text-foreground">
+                                {typeof invoice.risk_percentage === "number" 
+                                  ? invoice.risk_percentage.toFixed(2)
+                                  : invoice.risk_percentage}%
+                              </span>
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Mistakes Column */}
+                        <td className="px-3 py-2 border-r border-border">
+                          {(() => {
+                            const status = getMistakesStatus(invoice)
+                            if (status === "has-violations") {
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                  <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                                    Mistakes
+                                  </span>
+                                </div>
+                              )
+                            } else if (status === "no-violations") {
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                    No mistake
+                                  </span>
+                                </div>
+                              )
+                            } else {
+                              return (
+                                <div className="flex items-center gap-2">
+                                  <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                  <span className="text-sm text-muted-foreground">
+                                    Not checked
+                                  </span>
+                                </div>
+                              )
+                            }
+                          })()}
+                        </td>
+
                         {/* Updated Column */}
-                        <td className="px-6 py-4">
+                        <td className="px-3 py-2 border-r border-border">
                           {isEmpty(invoice.updated_at) ? (
                             <NotAvailable />
                           ) : (
@@ -318,7 +510,7 @@ export function InvoiceList({
                         </td>
 
                         {/* Action Column */}
-                        <td className="relative px-6 py-4 text-right">
+                        <td className="relative px-3 py-2 text-right">
                           <Button
                             type="button"
                             size="sm"
@@ -351,7 +543,7 @@ export function InvoiceList({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={columnCount} className="px-6 py-12 text-center text-muted-foreground">
+                    <td colSpan={columnCount} className="px-3 py-12 text-center text-muted-foreground">
                       No invoices found for the current filters.
                     </td>
                   </tr>
@@ -361,6 +553,7 @@ export function InvoiceList({
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {activeQuery ? (
         <InlineQueryOverlay
@@ -385,7 +578,7 @@ export function InvoiceList({
         </InlineQueryOverlay>
       ) : null}
 
-      <div className="mt-6 flex items-center justify-between text-sm text-muted-foreground">
+      <div className="mt-4 pt-3 border-t border-border flex items-center justify-between text-sm text-muted-foreground px-6">
         <span>
           Page {page} of {totalPages}
         </span>

@@ -7,18 +7,38 @@ import { DetailsModal } from "@/components/DetailsModal"
 import { getContractById, getContracts } from "@/api"
 import type { Contract } from "@/types"
 import type { LayoutContextValue } from "@/components/layout/AppLayout"
+import { loadFromStorage, saveToStorage, STORAGE_KEYS } from "@/lib/storage"
 
 const PAGE_SIZE = 10
 
+type ContractsPageState = {
+  contracts: Contract[]
+  total: number
+  page: number
+}
+
 export function Contracts() {
   const { searchTerm } = useOutletContext<LayoutContextValue>()
-  const [page, setPage] = useState(1)
-  const [contracts, setContracts] = useState<Contract[]>([])
-  const [total, setTotal] = useState(0)
+  
+  // Load persisted state from localStorage
+  const persistedState = loadFromStorage<ContractsPageState>(STORAGE_KEYS.CONTRACTS)
+  
+  const [page, setPage] = useState(persistedState?.page ?? 1)
+  const [contracts, setContracts] = useState<Contract[]>(persistedState?.contracts ?? [])
+  const [total, setTotal] = useState(persistedState?.total ?? 0)
   const [loading, setLoading] = useState(false)
   const [detailsOpen, setDetailsOpen] = useState(false)
   const [detailsData, setDetailsData] = useState<unknown>(null)
   const [detailsTitle, setDetailsTitle] = useState("Contract Details")
+
+  // Persist state to localStorage whenever it changes
+  useEffect(() => {
+    saveToStorage<ContractsPageState>(STORAGE_KEYS.CONTRACTS, {
+      contracts,
+      total,
+      page,
+    })
+  }, [contracts, total, page])
 
   const fetchContracts = useCallback(async () => {
     setLoading(true)

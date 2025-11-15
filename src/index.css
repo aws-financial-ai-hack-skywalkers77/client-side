@@ -4,48 +4,55 @@
 
 @layer base {
   :root {
+    /* AWS-style Dark Blue and Orange Theme */
+    /* AWS Dark Blue: #232F3E, AWS Orange: #FF9900 */
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 218 35% 12%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 218 35% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 218 35% 12%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* AWS Dark Blue Primary - #232F3E */
+    --primary: 218 35% 18%;
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --accent: 221 83% 53%;
-    --accent-foreground: 210 40% 98%;
+    --secondary-foreground: 218 35% 12%;
+    /* AWS Orange Accent - #FF9900 */
+    --accent: 32 100% 50%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --ring: 221 83% 53%;
-    --radius: 0.75rem;
+    --ring: 218 35% 18%;
+    --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 213 31% 91%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 213 31% 91%;
-    --card: 222 47% 13%;
-    --card-foreground: 213 31% 91%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 213 31% 91%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 11%;
+    /* AWS-style Dark Mode Theme */
+    --background: 218 35% 6%;
+    --foreground: 213 31% 95%;
+    --muted: 217 33% 12%;
+    --muted-foreground: 215 20% 70%;
+    --popover: 218 35% 8%;
+    --popover-foreground: 213 31% 95%;
+    --card: 218 35% 10%;
+    --card-foreground: 213 31% 95%;
+    --border: 217 33% 18%;
+    --input: 217 33% 18%;
+    /* AWS Dark Blue Primary - slightly lighter in dark mode */
+    --primary: 218 35% 30%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 217 33% 12%;
+    --secondary-foreground: 213 31% 95%;
+    /* AWS Orange Accent - brighter in dark mode */
+    --accent: 32 100% 60%;
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 63% 51%;
-    --destructive-foreground: 213 31% 91%;
-    --ring: 217 91% 60%;
+    --destructive-foreground: 213 31% 95%;
+    --ring: 218 35% 30%;
   }
 
   * {
@@ -54,5 +61,11 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    /* AWS-style clean white background */
+    background: #FFFFFF;
+  }
+
+  .dark body {
+    background: hsl(var(--background));
   }
 }

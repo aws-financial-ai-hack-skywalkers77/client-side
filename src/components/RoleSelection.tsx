@@ -101,15 +101,15 @@ export function RoleSelection({ onSelect }: RoleSelectionProps) {
             className={cn(
               "group relative overflow-hidden rounded-3xl border border-border/70 bg-gradient-to-br shadow-lg",
               role.accent,
-              "transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              "transition hover:-translate-y-1 hover:border-[#FF9900]/60 dark:hover:border-[#FFB84D]/60 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF9900] dark:focus-visible:ring-[#FFB84D]",
             )}
           >
             <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full border border-white/40 bg-white/30 blur-3xl dark:border-white/5 dark:bg-white/5" />
             <CardHeader className="flex flex-row items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 backdrop-blur">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FF9900]/10 dark:bg-[#FF9900]/20 backdrop-blur">
                 <role.icon
                   className={cn(
-                    "h-6 w-6 text-primary",
+                    "h-6 w-6 text-[#FF9900] dark:text-[#FFB84D]",
                   )}
                 />
               </div>
@@ -118,7 +118,7 @@ export function RoleSelection({ onSelect }: RoleSelectionProps) {
                 {role.status === "comingSoon" ? (
                   <Badge
                     variant="secondary"
-                    className="rounded-full border border-dashed border-primary/40 bg-background/80 px-3 py-1 text-xs uppercase tracking-wide text-primary shadow-sm backdrop-blur-sm"
+                    className="rounded-full border border-dashed border-[#FF9900]/40 dark:border-[#FFB84D]/40 bg-background/80 dark:bg-[#1A232E]/80 px-3 py-1 text-xs uppercase tracking-wide text-[#FF9900] dark:text-[#FFB84D] shadow-sm backdrop-blur-sm"
                   >
                     Coming Soon
                   </Badge>

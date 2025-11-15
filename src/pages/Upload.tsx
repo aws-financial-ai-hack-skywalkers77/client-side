@@ -32,21 +32,21 @@ export function Upload() {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[2fr,1fr]">
+    <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
       <UploadForm onUploadSuccess={handleUploadSuccess} />
 
       <div className="space-y-6">
         <Card className="border-border shadow-sm">
-          <CardHeader>
+          <CardHeader className="px-6 pt-6">
             <CardTitle>Workflow guidance</CardTitle>
             <CardDescription>
               Each upload triggers the FastAPI pipeline for ADE extraction, Gemini embeddings,
               and PostgreSQL persistence.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3 rounded-lg border border-dashed border-border/70 bg-secondary/30 p-3">
-              <Info className="mt-1 h-4 w-4 text-primary" />
+          <CardContent className="space-y-4 px-6 pb-6 text-sm text-muted-foreground">
+            <div className="flex items-start gap-4 rounded-lg border border-dashed border-border/70 bg-secondary/30 p-5">
+              <Info className="mt-1 h-4 w-4 text-[#FF9900] dark:text-[#FFB84D]" />
               <div>
                 <p className="font-medium text-foreground">Before uploading</p>
                 <p>
@@ -64,7 +64,7 @@ export function Upload() {
         </Card>
 
         <Card className="border-border shadow-sm">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6">
             <div>
               <CardTitle>Latest upload</CardTitle>
               <CardDescription>
@@ -76,9 +76,9 @@ export function Upload() {
               Copy JSON
             </Button>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-6 pb-6">
             {lastUpload ? (
-              <pre className="max-h-80 overflow-auto rounded-lg border border-muted bg-muted/20 p-3 text-xs text-muted-foreground">
+              <pre className="max-h-80 overflow-auto rounded-lg border border-muted bg-muted/20 p-5 text-xs text-muted-foreground">
                 {JSON.stringify(lastUpload.metadata, null, 2)}
               </pre>
             ) : (

@@ -21,8 +21,8 @@ export function AppLayout() {
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <TopNav onSearch={handleSearch} searchValue={searchTerm} />
-        <main className="flex-1 overflow-y-auto bg-muted/10">
-          <div className="container space-y-6 py-8">
+        <main className="flex-1 overflow-y-auto bg-[#F9FAFB] dark:bg-[#0F1419]">
+          <div className="w-full space-y-6 px-6 py-6">
             <Outlet context={{ searchTerm, setSearchTerm }} />
           </div>
         </main>

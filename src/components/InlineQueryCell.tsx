@@ -138,7 +138,7 @@ export function InlineQueryCell({
     <div className="space-y-3 rounded-lg border border-border/60 bg-card p-4 shadow-lg">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-1">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">{title}</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#232F3E] dark:text-[#FFB84D]">{title}</p>
           <p className="text-xs text-muted-foreground">{description}</p>
         </div>
         {onDismiss ? (
@@ -169,8 +169,8 @@ export function InlineQueryCell({
                 <p className="font-medium text-foreground">You</p>
                 <p className="text-muted-foreground">{turn.query}</p>
               </div>
-              <div className="rounded-md border border-primary/40 bg-primary/5 px-2 py-1 text-foreground">
-                <p className="font-medium text-primary">AI</p>
+              <div className="rounded-md border border-[#FF9900]/40 dark:border-[#FFB84D]/40 bg-[#FF9900]/5 dark:bg-[#FF9900]/10 px-2 py-1 text-foreground">
+                <p className="font-medium text-[#FF9900] dark:text-[#FFB84D]">AI</p>
                 <div
                   className="space-y-1"
                   dangerouslySetInnerHTML={formatAnswer(turn.answer)}

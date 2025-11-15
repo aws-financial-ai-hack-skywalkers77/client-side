@@ -8,6 +8,7 @@ import type {
   UploadResponse,
   InvoiceWorkflowBatch,
   InvoiceWorkflowReport,
+  DownloadUrlResponse,
 } from "@/types"
 import { apiClient } from "./client"
 
@@ -132,12 +133,66 @@ function normalizeInvoiceWorkflowPayload(payload: unknown): InvoiceWorkflowBatch
     return fallback
   }
 
-  const wrapSingle = (report: InvoiceWorkflowReport): InvoiceWorkflowBatch => ({
-    generated_at: report.processed_at ?? new Date().toISOString(),
-    invoices: [report],
-    metadata: {},
-  })
+  if (typeof payload === "object") {
+    const batchPayload = payload as Record<string, unknown>
 
+    // Handle new bulk response format
+    if (Array.isArray(batchPayload.reports)) {
+      const reports = batchPayload.reports
+        .map((item) => normalizeInvoiceWorkflowReport(item))
+        .filter(Boolean) as InvoiceWorkflowReport[]
+      
+      // Extract metadata from the batch response
+      const errors = Array.isArray(batchPayload.errors) 
+        ? batchPayload.errors as Array<{ invoice_db_id: number; invoice_id: string; error: string }>
+        : undefined
+
+      return {
+        generated_at: new Date().toISOString(),
+        invoices: reports,
+        processed: typeof batchPayload.processed === "number" ? batchPayload.processed : undefined,
+        failed: typeof batchPayload.failed === "number" ? batchPayload.failed : undefined,
+        errors,
+        invoices_in_queue: typeof batchPayload.invoices_in_queue === "number" ? batchPayload.invoices_in_queue : undefined,
+        violations_detected: typeof batchPayload.violations_detected === "number" ? batchPayload.violations_detected : undefined,
+        next_run_scheduled_in_hours: typeof batchPayload.next_run_scheduled_in_hours === "number" ? batchPayload.next_run_scheduled_in_hours : undefined,
+        metadata: {
+          status: batchPayload.status,
+        },
+      }
+    }
+
+    // Fallback: handle old format with 'invoices' array
+    if (Array.isArray(batchPayload.invoices)) {
+      const reports = batchPayload.invoices
+        .map((item) => normalizeInvoiceWorkflowReport(item))
+        .filter(Boolean) as InvoiceWorkflowReport[]
+      const generatedAt =
+        (typeof batchPayload.generated_at === "string" && batchPayload.generated_at) ||
+        new Date().toISOString()
+      return {
+        generated_at: generatedAt,
+        invoices: reports,
+        metadata: batchPayload.metadata && typeof batchPayload.metadata === "object"
+          ? (batchPayload.metadata as Record<string, unknown>)
+          : {},
+      }
+    }
+
+    // Fallback: handle single report
+    if (typeof batchPayload.invoice_id === "string") {
+      const single = normalizeInvoiceWorkflowReport(batchPayload)
+      if (single) {
+        return {
+          generated_at: single.processed_at ?? new Date().toISOString(),
+          invoices: [single],
+          metadata: {},
+        }
+      }
+    }
+  }
+
+  // Handle array of reports (old format)
   if (Array.isArray(payload)) {
     const reports = payload
       .map((item) => normalizeInvoiceWorkflowReport(item))
@@ -146,31 +201,6 @@ function normalizeInvoiceWorkflowPayload(payload: unknown): InvoiceWorkflowBatch
       generated_at: new Date().toISOString(),
       invoices: reports,
       metadata: {},
-    }
-  }
-
-  if (typeof payload === "object") {
-    const reportPayload = payload as Record<string, unknown>
-
-    if (Array.isArray(reportPayload.invoices)) {
-      const reports = reportPayload.invoices
-        .map((item) => normalizeInvoiceWorkflowReport(item))
-        .filter(Boolean) as InvoiceWorkflowReport[]
-      const generatedAt =
-        (typeof reportPayload.generated_at === "string" && reportPayload.generated_at) ||
-        new Date().toISOString()
-      return {
-        generated_at: generatedAt,
-        invoices: reports,
-        metadata: reportPayload.metadata && typeof reportPayload.metadata === "object"
-          ? (reportPayload.metadata as Record<string, unknown>)
-          : {},
-      }
-    }
-
-    const single = normalizeInvoiceWorkflowReport(reportPayload)
-    if (single) {
-      return wrapSingle(single)
     }
   }
 
@@ -205,8 +235,41 @@ function normalizeInvoiceWorkflowReport(payload: unknown): InvoiceWorkflowReport
     ? source.contract_clauses.filter(Boolean).map((item) => item as Record<string, unknown>)
     : []
 
+  // Extract risk_assessment_score and convert to percentage (multiply by 100)
+  let riskPercentage: number | null | undefined = undefined
+  if (typeof source.risk_assessment_score === "number") {
+    // Multiply by 100 to convert to percentage
+    riskPercentage = Math.round(source.risk_assessment_score * 100 * 100) / 100 // Round to 2 decimal places
+  } else if (source.risk_assessment_score === null) {
+    riskPercentage = null
+  } else if (typeof source.risk_percentage === "number") {
+    // Fallback to risk_percentage if risk_assessment_score not provided
+    riskPercentage = source.risk_percentage
+  } else if (source.risk_percentage === null) {
+    riskPercentage = null
+  } else if (evaluationSummary) {
+    // Calculate risk based on violations detected vs items evaluated as last resort
+    const itemsEvaluated = typeof evaluationSummary.line_items_evaluated === "number" ? evaluationSummary.line_items_evaluated : 0
+    const violationsDetected = typeof evaluationSummary.violations_detected === "number" ? evaluationSummary.violations_detected : violations.length
+    if (itemsEvaluated > 0) {
+      riskPercentage = Math.round((violationsDetected / itemsEvaluated) * 100)
+    } else if (violationsDetected > 0) {
+      riskPercentage = 100
+    } else {
+      riskPercentage = 0
+    }
+  }
+
+  // Extract invoice_db_id from raw or metadata
+  const invoiceDbId = typeof source.invoice_db_id === "number" 
+    ? source.invoice_db_id 
+    : typeof source.db_id === "number"
+      ? source.db_id
+      : undefined
+
   return {
     invoice_id: invoiceId,
+    invoice_db_id: invoiceDbId,
     status: typeof source.status === "string" ? source.status : "processed",
     processed_at: typeof source.processed_at === "string" ? source.processed_at : undefined,
     violations: violations as InvoiceWorkflowReport["violations"],
@@ -216,14 +279,40 @@ function normalizeInvoiceWorkflowReport(payload: unknown): InvoiceWorkflowReport
       typeof source.next_run_scheduled_in_hours === "number"
         ? source.next_run_scheduled_in_hours
         : undefined,
+    risk_assessment_score: typeof source.risk_assessment_score === "number" ? source.risk_assessment_score : undefined,
+    risk_percentage: riskPercentage,
     raw: source,
   }
 }
 
 export async function runInvoiceWorkflow(invoiceIds: number[]): Promise<InvoiceWorkflowBatch> {
-  const response = await apiClient.post("/analyze_invoice/" + invoiceIds[0], {
-    // invoice_ids: invoiceIds,
+  const response = await apiClient.post("/analyze_invoices", {
+    invoice_ids: invoiceIds,
   })
   return normalizeInvoiceWorkflowPayload(response.data)
+}
+
+/**
+ * Fetches a presigned S3 URL for an invoice PDF
+ * @param dbId The database ID of the invoice
+ * @returns Promise resolving to the download URL response containing the presigned URL
+ */
+export async function getInvoiceDownloadUrl(dbId: number): Promise<DownloadUrlResponse> {
+  const endpoint = `/documents/invoice/${dbId}/download_url`
+  console.log("Calling invoice download URL endpoint:", endpoint)
+  const response = await apiClient.get<DownloadUrlResponse>(endpoint)
+  return response.data
+}
+
+/**
+ * Fetches a presigned S3 URL for a contract PDF
+ * @param dbId The database ID of the contract
+ * @returns Promise resolving to the download URL response containing the presigned URL
+ */
+export async function getContractDownloadUrl(dbId: number): Promise<DownloadUrlResponse> {
+  const endpoint = `/documents/contract/${dbId}/download_url`
+  console.log("Calling contract download URL endpoint:", endpoint)
+  const response = await apiClient.get<DownloadUrlResponse>(endpoint)
+  return response.data
 }
 

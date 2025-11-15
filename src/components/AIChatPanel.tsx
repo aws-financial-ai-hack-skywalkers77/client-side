@@ -108,14 +108,14 @@ export function AIChatPanel({ onNavigate }: AIChatPanelProps) {
 
   return (
     <Card className="border-border shadow-sm">
-      <CardHeader>
+      <CardHeader className="px-6 pt-6">
         <CardTitle className="text-lg font-semibold">Ask the DocuFlow AI Assistant</CardTitle>
         <p className="text-sm text-muted-foreground">
           Pose questions about vendor risk, invoice anomalies, compliance exposure, or any custom
           workflow prompts. Responses will surface inline once the AI endpoint is connected.
         </p>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-6 pb-6">
         <div className="flex flex-wrap gap-2">
           {quickActions.map((action) => (
             <Button
@@ -123,7 +123,7 @@ export function AIChatPanel({ onNavigate }: AIChatPanelProps) {
               type="button"
               variant="secondary"
               size="sm"
-              className="rounded-full border border-primary/20 bg-primary/5 text-xs font-medium text-primary hover:bg-primary/10"
+              className="rounded-full border border-[#FF9900]/20 dark:border-[#FFB84D]/30 bg-[#FF9900]/5 dark:bg-[#FF9900]/10 text-xs font-medium text-[#FF9900] dark:text-[#FFB84D] hover:bg-[#FF9900]/10 dark:hover:bg-[#FF9900]/20"
               onClick={() => handleQuickAction(action)}
             >
               {action.label}

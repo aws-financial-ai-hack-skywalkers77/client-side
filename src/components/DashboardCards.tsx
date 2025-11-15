@@ -49,15 +49,15 @@ export function DashboardCards({
   const health = healthConfig[healthStatus]
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-      <Card className="md:col-span-2">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <Card className="border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Total Documents Processed
           </CardTitle>
-          <ArrowUpRight className="h-5 w-5 text-primary" />
+          <ArrowUpRight className="h-5 w-5 text-[#FF9900] dark:text-[#FFB84D]" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           <div className="text-4xl font-semibold">{totalDocuments.toLocaleString()}</div>
           <p className="mt-2 text-sm text-muted-foreground">
             Includes invoices and contracts processed through FastAPI.
@@ -65,14 +65,14 @@ export function DashboardCards({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Invoices
           </CardTitle>
-          <FileText className="h-5 w-5 text-primary" />
+          <FileText className="h-5 w-5 text-[#FF9900] dark:text-[#FFB84D]" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           <div className="text-3xl font-semibold">{invoiceCount.toLocaleString()}</div>
           <p className="mt-2 text-sm text-muted-foreground">
             Recent activity synced from ADE invoice pipeline.
@@ -80,14 +80,14 @@ export function DashboardCards({
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <Card className="border-border shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-6 pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             Contracts
           </CardTitle>
-          <ShieldCheck className="h-5 w-5 text-primary" />
+          <ShieldCheck className="h-5 w-5 text-[#FF9900] dark:text-[#FFB84D]" />
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-6 pb-6">
           <div className="text-3xl font-semibold">{contractCount.toLocaleString()}</div>
           <p className="mt-2 text-sm text-muted-foreground">
             Vectorized contract clauses ready for review.
@@ -95,14 +95,14 @@ export function DashboardCards({
         </CardContent>
       </Card>
 
-      <Card className="xl:col-span-1">
-        <CardHeader>
+      <Card className="border-border shadow-sm">
+        <CardHeader className="px-6 pt-6">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             API Health
           </CardTitle>
           <CardDescription>Realtime status from http://localhost:8001</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
+        <CardContent className="flex flex-col gap-3 px-6 pb-6">
           <Badge variant={health.badge} className={cn("w-fit px-3 py-1 text-xs")}>
             {health.label}
           </Badge>

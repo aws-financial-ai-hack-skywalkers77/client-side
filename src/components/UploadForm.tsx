@@ -92,7 +92,7 @@ export function UploadForm({ onUploadSuccess }: UploadFormProps) {
       className="space-y-6 rounded-2xl border border-border bg-card p-8 shadow-sm"
     >
       <div className="flex items-center gap-3">
-        <div className="rounded-full bg-primary/10 p-3 text-primary">
+        <div className="rounded-full bg-[#FF9900]/10 dark:bg-[#FF9900]/20 p-3 text-[#FF9900] dark:text-[#FFB84D]">
           <FileUp className="h-6 w-6" />
         </div>
         <div>

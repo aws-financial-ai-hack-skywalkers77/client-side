@@ -25,10 +25,10 @@ export function TopNav({ onSearch, searchValue = "" }: TopNavProps) {
   }
 
   return (
-    <header className="flex h-20 items-center justify-between border-b border-border bg-background px-6">
+    <header className="flex h-20 items-center justify-between border-b border-[#DADADA] bg-white dark:bg-[#1A232E] dark:border-[#37475A]/30 px-6 shadow-sm">
       <form
         onSubmit={handleSubmit}
-        className="flex max-w-xl flex-1 items-center rounded-lg border border-border bg-card px-3 py-2 shadow-sm"
+        className="flex max-w-xl flex-1 items-center rounded-lg border border-border dark:border-[#37475A]/50 bg-card dark:bg-[#1A232E] px-3 py-2 shadow-sm"
       >
         <Search className="mr-3 h-5 w-5 text-muted-foreground" />
         <Input
@@ -56,7 +56,7 @@ export function TopNav({ onSearch, searchValue = "" }: TopNavProps) {
             3
           </Badge>
         </Button>
-        <div className="flex items-center gap-3 rounded-full border border-border bg-card px-3 py-2 shadow-sm">
+        <div className="flex items-center gap-3 rounded-full border border-border dark:border-[#37475A]/50 bg-card dark:bg-[#1A232E] px-3 py-2 shadow-sm">
           <div className="leading-tight">
             <p className="text-sm font-semibold">Avery Chen</p>
             <p className="text-xs text-muted-foreground">Lead Auditor</p>

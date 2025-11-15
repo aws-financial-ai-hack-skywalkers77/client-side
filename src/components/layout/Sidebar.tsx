@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { Logo } from "@/components/Logo"
 
 const navItemsBeforeDocuments = [
   { to: "/", label: "Dashboard", icon: LayoutGrid },
@@ -41,12 +42,10 @@ export function Sidebar() {
   }, [isDocumentsRoute])
 
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-border bg-card">
+    <aside className="flex h-full w-64 flex-col border-r border-[#232F3E]/20 bg-[#232F3E] dark:bg-[#1A232E] dark:border-[#37475A]/30">
       <div className="px-6 py-8">
-        <h1 className="text-2xl font-semibold tracking-tight text-primary">
-          DocuFlow
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <Logo />
+        <p className="mt-3 ml-1 text-sm text-[#C7D1DB] dark:text-[#9CA3AF]">
           Document Processing Platform
         </p>
       </div>
@@ -60,8 +59,8 @@ export function Sidebar() {
               cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "bg-[#FF9900] dark:bg-[#FFB84D] text-white shadow-sm"
+                  : "text-[#C7D1DB] dark:text-[#9CA3AF] hover:bg-[#37475A] dark:hover:bg-[#2D3748] hover:text-white",
               )
             }
           >
@@ -76,7 +75,7 @@ export function Sidebar() {
             onClick={() => setIsDocumentsExpanded(!isDocumentsExpanded)}
             className={cn(
               "flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
-              "text-muted-foreground hover:bg-secondary hover:text-foreground",
+              "text-[#C7D1DB] dark:text-[#9CA3AF] hover:bg-[#37475A] dark:hover:bg-[#2D3748] hover:text-white",
             )}
           >
             <div className="flex items-center gap-3">
@@ -114,8 +113,8 @@ export function Sidebar() {
                         cn(
                           "relative ml-6 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                           navIsActive || isActive
-                            ? "bg-background text-foreground shadow-sm"
-                            : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground",
+                            ? "bg-[#37475A] dark:bg-[#2D3748] text-white shadow-sm"
+                            : "text-[#C7D1DB] dark:text-[#9CA3AF] hover:bg-[#37475A]/50 dark:hover:bg-[#2D3748]/50 hover:text-white",
                         )
                       }
                     >
@@ -138,8 +137,8 @@ export function Sidebar() {
               cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "bg-[#FF9900] dark:bg-[#FFB84D] text-white shadow-sm"
+                  : "text-[#C7D1DB] dark:text-[#9CA3AF] hover:bg-[#37475A] dark:hover:bg-[#2D3748] hover:text-white",
               )
             }
           >
@@ -149,8 +148,8 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="px-6 py-6">
-        <div className="rounded-xl border border-dashed border-muted-foreground/40 bg-secondary/20 p-4 text-sm text-muted-foreground">
-          <p className="font-semibold text-foreground">Need help?</p>
+        <div className="rounded-xl border border-dashed border-[#FF9900]/40 dark:border-[#FFB84D]/40 bg-[#37475A]/30 dark:bg-[#2D3748]/30 p-4 text-sm text-[#C7D1DB] dark:text-[#9CA3AF]">
+          <p className="font-semibold text-white dark:text-[#E5E7EB]">Need help?</p>
           <p className="mt-1 text-xs">
             Visit our knowledge base for integration guides.
           </p>
