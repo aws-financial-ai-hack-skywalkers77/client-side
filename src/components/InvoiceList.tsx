@@ -75,7 +75,7 @@ const getInvoiceLabel = (invoice: Invoice): string => {
 
 // Not Available component
 const NotAvailable = () => (
-  <div className="flex items-center gap-1.5 text-sm text-orange-600 dark:text-orange-400">
+  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
     <AlertCircle className="h-4 w-4 flex-shrink-0" />
     <span className="whitespace-nowrap">Not available</span>
   </div>

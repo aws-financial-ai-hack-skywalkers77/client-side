@@ -1,4 +1,4 @@
-import { Bell, Search } from "lucide-react"
+import { BellRing, Search } from "lucide-react"
 import { type FormEvent, useEffect, useState } from "react"
 
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,7 @@ export function TopNav({ onSearch, searchValue = "" }: TopNavProps) {
         onSubmit={handleSubmit}
         className="flex max-w-xl flex-1 items-center rounded-lg border border-border bg-card px-3 py-2 shadow-sm"
       >
-        <Search className="mr-3 h-4 w-4 text-muted-foreground" />
+        <Search className="mr-3 h-5 w-5 text-muted-foreground" />
         <Input
           value={value}
           onChange={(event) => {
@@ -41,14 +41,14 @@ export function TopNav({ onSearch, searchValue = "" }: TopNavProps) {
           placeholder="Search documents, IDs, or keywords..."
           className="border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
         />
-        <Button type="submit" size="sm" className="ml-3">
-          Search
+        <Button type="submit" variant="ghost" size="icon" className="ml-2 h-8 w-8">
+          <Search className="h-4 w-4" />
         </Button>
       </form>
       <div className="ml-6 flex items-center gap-4">
         <ThemeToggle />
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
+          <BellRing className="h-5 w-5" />
           <Badge
             variant="destructive"
             className="absolute -right-1 -top-1 h-4 min-w-[16px] px-1 text-[10px]"
