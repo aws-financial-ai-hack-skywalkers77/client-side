@@ -497,13 +497,13 @@ export function InvoiceList({
                           )}
                         </td>
 
-                        {/* Action Column */}
-                        <td className="relative px-3 py-2 text-right">
+                        {/* Action Column — fixed footprint so every row matches */}
+                        <td className="relative w-[220px] min-w-[220px] max-w-[220px] px-3 py-2 text-right align-middle">
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                          className="group gap-3 rounded-full border-primary/40 bg-primary/5 px-3 py-2 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-neutral-700"
+                            className="group h-[52px] w-full min-h-[52px] max-h-[52px] gap-2 rounded-full border-primary/40 bg-primary/5 px-3 py-0 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-neutral-700"
                             onClick={(event) => {
                               event.stopPropagation()
                               const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect()
@@ -513,14 +513,14 @@ export function InvoiceList({
                             }}
                             disabled={loading}
                           >
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-primary/20">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition group-hover:bg-primary/20">
                               <Sparkles className="h-3.5 w-3.5" />
                             </span>
-                            <span className="flex flex-col items-start leading-tight">
-                            <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80 transition-colors group-hover:text-neutral-700">
+                            <span className="flex min-w-0 flex-1 flex-col items-start justify-center gap-0.5 leading-tight text-left">
+                              <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80 transition-colors group-hover:text-neutral-700">
                                 DocuFlow AI
                               </span>
-                              <span className="text-xs font-medium transition-colors group-hover:text-neutral-700">
+                              <span className="line-clamp-2 max-h-8 w-full text-xs font-medium transition-colors group-hover:text-neutral-700">
                                 Ask about {getInvoiceLabel(invoice)}
                               </span>
                             </span>

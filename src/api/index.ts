@@ -369,11 +369,30 @@ function isUsableDbId(id: unknown): id is number {
 }
 
 /**
+ * Ask the API for the highlighted PDF (`{invoice_id}_highlighted.pdf` in S3) when supported.
+ * Set `VITE_PDF_USE_HIGHLIGHTED=false` to request the original file only.
+ */
+function preferHighlightedPdf(): boolean {
+  return import.meta.env.VITE_PDF_USE_HIGHLIGHTED !== "false"
+}
+
+function pdfUrlQueryParams(): Record<string, string> | undefined {
+  if (!preferHighlightedPdf()) return undefined
+  return { highlighted: "true" }
+}
+
+function directPdfQuerySuffix(): string {
+  if (!preferHighlightedPdf()) return ""
+  return "?highlighted=true"
+}
+
+/**
  * GET {API_BASE}/invoices/{invoiceDbId}/pdf_url — read `url` from JSON body.
  */
 export async function getInvoicePdfUrl(invoiceDbId: number): Promise<string> {
   const response = await apiClient.get<InvoicePdfUrlResponse & Record<string, unknown>>(
     `/invoices/${invoiceDbId}/pdf_url`,
+    { params: pdfUrlQueryParams() },
   )
   const url = parsePdfUrlPayload(response.data)
   if (url) return url
@@ -387,6 +406,7 @@ export async function getInvoicePdfUrlByBusinessInvoiceId(invoiceBusinessId: str
   const enc = encodeURIComponent(invoiceBusinessId)
   const response = await apiClient.get<InvoicePdfUrlResponse & Record<string, unknown>>(
     `/invoices/by-invoice-id/${enc}/pdf_url`,
+    { params: pdfUrlQueryParams() },
   )
   const url = parsePdfUrlPayload(response.data)
   if (url) return url
@@ -423,7 +443,11 @@ export async function openInvoicePdfInNewTab(args: OpenInvoicePdfArgs): Promise<
       window.open(url, "_blank", "noopener,noreferrer")
       return
     } catch {
-      window.open(`${apiOrigin()}/invoices/${invoiceDbId}/pdf`, "_blank", "noopener,noreferrer")
+      window.open(
+        `${apiOrigin()}/invoices/${invoiceDbId}/pdf${directPdfQuerySuffix()}`,
+        "_blank",
+        "noopener,noreferrer",
+      )
       return
     }
   }
@@ -433,13 +457,30 @@ export async function openInvoicePdfInNewTab(args: OpenInvoicePdfArgs): Promise<
     window.open(url, "_blank", "noopener,noreferrer")
   } catch {
     const enc = encodeURIComponent(business)
-    window.open(`${apiOrigin()}/invoices/by-invoice-id/${enc}/pdf`, "_blank", "noopener,noreferrer")
+    window.open(
+      `${apiOrigin()}/invoices/by-invoice-id/${enc}/pdf${directPdfQuerySuffix()}`,
+      "_blank",
+      "noopener,noreferrer",
+    )
   }
 }
 
-/** PDF link from saved compliance report: top-level pdf_url or llm_metadata.s3_url. */
+/** PDF link from saved compliance report — prefer highlighted when API includes it. */
 export function complianceReportPdfUrl(report: ComplianceReportLatest | null | undefined): string | null {
   if (!report || typeof report !== "object") return null
+  const r = report as Record<string, unknown>
+  if (preferHighlightedPdf()) {
+    if (typeof r.highlighted_pdf_url === "string" && r.highlighted_pdf_url.length > 0) {
+      return r.highlighted_pdf_url
+    }
+    const llm = r.llm_metadata
+    if (llm && typeof llm === "object") {
+      const lm = llm as Record<string, unknown>
+      if (typeof lm.highlighted_s3_url === "string" && lm.highlighted_s3_url.length > 0) {
+        return lm.highlighted_s3_url
+      }
+    }
+  }
   if (typeof report.pdf_url === "string" && report.pdf_url.length > 0) return report.pdf_url
   const llm = report.llm_metadata
   if (llm && typeof llm === "object" && typeof llm.s3_url === "string" && llm.s3_url.length > 0) {

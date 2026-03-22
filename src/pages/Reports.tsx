@@ -488,10 +488,8 @@ export function Reports() {
         <CardHeader className="px-6 pt-5 pb-3">
           <CardTitle className="text-lg font-semibold">Compliance reports</CardTitle>
           <CardDescription>
-            Latest compliance report per invoice ({`GET /invoices/{id}/compliance_report/latest`}). PDFs use{" "}
-            <code className="text-[10px]">pdf_url</code> when present, otherwise{" "}
-            <code className="text-[10px]">GET /invoices/{`{id}`}/pdf_url</code> or the API{" "}
-            <code className="text-[10px]">/invoices/{`{id}`}/pdf</code> route.
+            Saved compliance snapshot per invoice. View PDF opens the document from storage; when a highlighted
+            copy exists in S3, that version is opened first.
           </CardDescription>
         </CardHeader>
         <CardContent className="px-6 pb-5">
@@ -583,36 +581,6 @@ export function Reports() {
                   ? `Rule breaches and compliance violations for ${selectedInvoiceReport.invoice_id}`
                   : "Rule breaches grouped by invoice and contract references."}
             </CardDescription>
-            {selectedInvoiceReport &&
-            ((typeof selectedInvoiceReport.risk_tier === "string" && selectedInvoiceReport.risk_tier.trim() !== "") ||
-              typeof selectedInvoiceReport.risk_percentage === "number" ||
-              typeof selectedInvoiceReport.risk_assessment_score === "number") ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Risk Assessment:</span>
-                <span
-                  className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${riskBadgeClasses(
-                    resolveRiskDisplay({
-                      risk_tier: selectedInvoiceReport.risk_tier,
-                      risk_percentage: selectedInvoiceReport.risk_percentage,
-                    }).level,
-                  )}`}
-                >
-                  {resolveRiskDisplay({
-                    risk_tier: selectedInvoiceReport.risk_tier,
-                    risk_percentage: selectedInvoiceReport.risk_percentage,
-                  }).label}
-                  {typeof selectedInvoiceReport.risk_percentage === "number"
-                    ? ` (${selectedInvoiceReport.risk_percentage.toFixed(2)}%)`
-                    : ""}
-                </span>
-                {formatRiskAssessmentScoreRaw(selectedInvoiceReport.risk_assessment_score) ? (
-                  <span className="text-[10px] text-muted-foreground">
-                    score {formatRiskAssessmentScoreRaw(selectedInvoiceReport.risk_assessment_score)}
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
           </div>
           <Badge variant="destructive" className="gap-2">
             <AlertTriangle className="h-3.5 w-3.5" />
@@ -696,27 +664,10 @@ export function Reports() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          {(typeof invoice.risk_tier === "string" && invoice.risk_tier.trim() !== "") ||
-                          typeof invoice.risk_percentage === "number" ||
-                          typeof invoice.risk_assessment_score === "number" ? (
-                            <span className="inline-flex flex-col items-end gap-0.5">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-bold border ${riskBadgeClasses(riskInfo.level)}`}
-                              >
-                                {riskInfo.label}
-                                {typeof invoice.risk_percentage === "number"
-                                  ? ` — ${riskPercentage.toFixed(2)}%`
-                                  : ""}
-                              </span>
-                              {scoreRaw ? (
-                                <span className="text-[10px] text-muted-foreground">score {scoreRaw}</span>
-                              ) : null}
-                            </span>
-                          ) : null}
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 text-xs gap-1"
+                            className="h-7 text-xs gap-1 shrink-0"
                             onClick={() => void openPdfForInvoiceRow(invoice.invoice_db_id, invoice.invoice_id)}
                           >
                             <Eye className="h-3 w-3" />
@@ -725,112 +676,9 @@ export function Reports() {
                         </div>
                       </div>
 
-                      {(invoice.review_status ||
-                        (invoice.escalations && invoice.escalations.length > 0)) && (
-                        <div className="mb-4 space-y-3">
-                          {invoice.review_status ? (
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-xs font-semibold text-foreground">Review status</span>
-                              <Badge
-                                variant="outline"
-                                className={`text-xs font-semibold ${reviewStatusBadgeClass(invoice.review_status)}`}
-                              >
-                                {invoice.review_status}
-                              </Badge>
-                            </div>
-                          ) : null}
-                          {invoice.escalations && invoice.escalations.length > 0 ? (
-                            <EscalationList items={invoice.escalations} />
-                          ) : null}
-                        </div>
-                      )}
-
-                      {invoice.line_evaluations && invoice.line_evaluations.length > 0 ? (
-                        <div className="mb-4 overflow-x-auto rounded-lg border border-border/50">
-                          <p className="text-xs font-semibold text-foreground px-3 py-2 bg-muted/30 border-b border-border/50">
-                            Line evaluations
-                          </p>
-                          <table className="w-full text-left text-[11px]">
-                            <thead>
-                              <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
-                                <th className="px-3 py-1.5 font-medium">Line</th>
-                                <th className="px-3 py-1.5 font-medium">Description</th>
-                                <th className="px-3 py-1.5 font-medium">Outcome</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {invoice.line_evaluations.map((row, ri) => (
-                                <tr
-                                  key={`${lineEvaluationLineLabel(row)}-${ri}`}
-                                  className="border-b border-border/30 last:border-0"
-                                >
-                                  <td className="px-3 py-1.5 font-mono text-foreground align-top">
-                                    {lineEvaluationLineLabel(row)}
-                                  </td>
-                                  <td className="px-3 py-1.5 text-foreground align-top max-w-[min(280px,40vw)]">
-                                    {lineEvaluationDescription(row)}
-                                  </td>
-                                  <td className="px-3 py-1.5 text-muted-foreground align-top">
-                                    {lineEvaluationOutcome(row)}
-                                  </td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      ) : null}
-
-                      {invoice.pricing_rules?.rejected_rules &&
-                      Array.isArray(invoice.pricing_rules.rejected_rules) &&
-                      invoice.pricing_rules.rejected_rules.length > 0 ? (
-                        <details className="mb-4 rounded-lg border border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/20">
-                          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-foreground">
-                            Rejected pricing rules ({invoice.pricing_rules.rejected_rules.length})
-                          </summary>
-                          <pre className="max-h-48 overflow-auto border-t border-border/40 px-3 py-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-all">
-                            {JSON.stringify(invoice.pricing_rules.rejected_rules, null, 2)}
-                          </pre>
-                        </details>
-                      ) : null}
-
-                      {invoice.audit_trace && Object.keys(invoice.audit_trace).length > 0 ? (
-                        <details className="mb-4 rounded-lg border border-border/60 bg-muted/10">
-                          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-foreground">
-                            Audit trace (JSON)
-                          </summary>
-                          <pre className="max-h-64 overflow-auto border-t border-border/40 px-3 py-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-all">
-                            {JSON.stringify(invoice.audit_trace, null, 2)}
-                          </pre>
-                        </details>
-                      ) : null}
-
-                      {/* Risk Assessment Chart */}
-                      {showRiskBar ? (
-                        <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border/50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-semibold text-foreground flex items-center gap-2">
-                              <TrendingUp className="h-3.5 w-3.5" />
-                              Risk Assessment
-                            </span>
-                          </div>
-                          <Progress
-                            value={barValue}
-                            className={`h-2.5 ${
-                              riskInfo.level === "good" || riskInfo.level === "low"
-                                ? "[&>div]:bg-green-500"
-                                : riskInfo.level === "medium"
-                                  ? "[&>div]:bg-yellow-500"
-                                  : riskInfo.level === "unknown"
-                                    ? "[&>div]:bg-slate-500"
-                                    : "[&>div]:bg-red-500"
-                            }`}
-                          />
-                        </div>
-                      ) : null}
-
-                      {/* Violations List */}
+                      {/* Violations */}
                       {violations.length > 0 && (
-                        <div className="space-y-3">
+                        <div className="space-y-3 mb-4">
                           <h4 className="text-sm font-semibold text-foreground mb-2">Violations ({violations.length}):</h4>
                           {violations.map((violation, index) => (
                             <div
@@ -946,6 +794,122 @@ export function Reports() {
                           ))}
                         </div>
                       )}
+
+                      {(invoice.review_status ||
+                        (invoice.escalations && invoice.escalations.length > 0)) && (
+                        <div className="mb-4 space-y-3">
+                          {invoice.review_status ? (
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-xs font-semibold text-foreground">Review status</span>
+                              <Badge
+                                variant="outline"
+                                className={`text-xs font-semibold ${reviewStatusBadgeClass(invoice.review_status)}`}
+                              >
+                                {invoice.review_status}
+                              </Badge>
+                            </div>
+                          ) : null}
+                          {invoice.escalations && invoice.escalations.length > 0 ? (
+                            <EscalationList items={invoice.escalations} />
+                          ) : null}
+                        </div>
+                      )}
+
+                      {invoice.audit_trace && Object.keys(invoice.audit_trace).length > 0 ? (
+                        <details className="mb-4 rounded-lg border border-border/60 bg-muted/10">
+                          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-foreground">
+                            Audit trace (JSON)
+                          </summary>
+                          <pre className="max-h-64 overflow-auto border-t border-border/40 px-3 py-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-all">
+                            {JSON.stringify(invoice.audit_trace, null, 2)}
+                          </pre>
+                        </details>
+                      ) : null}
+
+                      {showRiskBar ? (
+                        <div className="mb-4 p-3 rounded-lg bg-muted/30 border border-border/50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-semibold text-foreground flex items-center gap-2">
+                              <TrendingUp className="h-3.5 w-3.5" />
+                              Risk Assessment
+                              {scoreRaw ? (
+                                <span className="text-[10px] font-normal text-muted-foreground">
+                                  (score {scoreRaw})
+                                </span>
+                              ) : null}
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${riskBadgeClasses(riskInfo.level)}`}
+                            >
+                              {riskInfo.label}
+                              {typeof invoice.risk_percentage === "number"
+                                ? ` ${riskPercentage.toFixed(2)}%`
+                                : ""}
+                            </span>
+                          </div>
+                          <Progress
+                            value={barValue}
+                            className={`h-2.5 ${
+                              riskInfo.level === "good" || riskInfo.level === "low"
+                                ? "[&>div]:bg-green-500"
+                                : riskInfo.level === "medium"
+                                  ? "[&>div]:bg-yellow-500"
+                                  : riskInfo.level === "unknown"
+                                    ? "[&>div]:bg-slate-500"
+                                    : "[&>div]:bg-red-500"
+                            }`}
+                          />
+                        </div>
+                      ) : null}
+
+                      {invoice.line_evaluations && invoice.line_evaluations.length > 0 ? (
+                        <div className="mb-4 overflow-x-auto rounded-lg border border-border/50">
+                          <p className="text-xs font-semibold text-foreground px-3 py-2 bg-muted/30 border-b border-border/50">
+                            Line evaluations
+                          </p>
+                          <table className="w-full text-left text-[11px]">
+                            <thead>
+                              <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
+                                <th className="px-3 py-1.5 font-medium">Line</th>
+                                <th className="px-3 py-1.5 font-medium">Description</th>
+                                <th className="px-3 py-1.5 font-medium">Outcome</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {invoice.line_evaluations.map((row, ri) => (
+                                <tr
+                                  key={`${lineEvaluationLineLabel(row)}-${ri}`}
+                                  className="border-b border-border/30 last:border-0"
+                                >
+                                  <td className="px-3 py-1.5 font-mono text-foreground align-top">
+                                    {lineEvaluationLineLabel(row)}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-foreground align-top max-w-[min(280px,40vw)]">
+                                    {lineEvaluationDescription(row)}
+                                  </td>
+                                  <td className="px-3 py-1.5 text-muted-foreground align-top">
+                                    {lineEvaluationOutcome(row)}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : null}
+
+                      {invoice.pricing_rules?.rejected_rules &&
+                      Array.isArray(invoice.pricing_rules.rejected_rules) &&
+                      invoice.pricing_rules.rejected_rules.length > 0 ? (
+                        <details className="mb-4 rounded-lg border border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/20">
+                          <summary className="cursor-pointer px-3 py-2 text-xs font-semibold text-foreground">
+                            Rejected pricing rules ({invoice.pricing_rules.rejected_rules.length})
+                          </summary>
+                          <pre className="max-h-48 overflow-auto border-t border-border/40 px-3 py-2 text-[10px] text-muted-foreground whitespace-pre-wrap break-all">
+                            {JSON.stringify(invoice.pricing_rules.rejected_rules, null, 2)}
+                          </pre>
+                        </details>
+                      ) : null}
+
                   </div>
                   )
                 })

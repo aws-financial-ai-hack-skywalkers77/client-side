@@ -236,9 +236,12 @@ export interface InvoicePdfUrlResponse {
 /** GET /invoices/{id}/compliance_report/latest — shape may vary; common fields: */
 export interface ComplianceReportLatest {
   pdf_url?: string | null
+  /** When set, UI prefers this for View PDF (highlighted S3 object). */
+  highlighted_pdf_url?: string | null
   invoice_db_id?: number
   llm_metadata?: {
     s3_url?: string | null
+    highlighted_s3_url?: string | null
     [key: string]: unknown
   }
   [key: string]: unknown
