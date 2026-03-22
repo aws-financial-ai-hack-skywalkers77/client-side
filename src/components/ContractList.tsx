@@ -316,6 +316,7 @@ export function ContractList({
 
       {activeQuery ? (
         <InlineQueryOverlay
+          width={440}
           anchor={{
             top: activeQuery.anchor.top,
             bottom: activeQuery.anchor.bottom,

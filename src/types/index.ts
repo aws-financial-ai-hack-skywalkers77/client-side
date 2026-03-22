@@ -1,5 +1,8 @@
 export type DocumentType = "invoice" | "contract"
 
+/** From POST /analyze_invoices (or single-invoice analyze) — additive tier field. */
+export type InvoiceRiskTier = "high" | "medium" | "low" | "unknown"
+
 export interface Invoice {
   id: number
   invoice_id: string | null
@@ -10,6 +13,11 @@ export interface Invoice {
   tax_amount: number | null
   summary: string | null
   risk_percentage?: number | null
+  /** Server-provided tier (preferred over inferring from percentage). */
+  risk_tier?: InvoiceRiskTier | string | null
+  risk_assessment_score?: number | null
+  /** May mirror workflow review_status (not always legacy "processed"). */
+  compliance_status?: string | null
   created_at: string
   updated_at?: string | null
 }
@@ -75,6 +83,7 @@ export interface InvoiceWorkflowViolation {
   applied_rule?: InvoiceWorkflowRule | null
   reasoning?: ViolationReasoning | null
   pdf_location?: PdfLocation | null
+  recommended_actions?: string[]
   [key: string]: unknown
 }
 
@@ -91,6 +100,55 @@ export interface InvoiceWorkflowContractClause {
   [key: string]: unknown
 }
 
+export type ComplianceReviewStatus =
+  | "cleared"
+  | "violation"
+  | "needs_review"
+  | "no_contract_context"
+  | "rule_extraction_failed"
+  | "insufficient_grounded_rules"
+  | string
+
+export interface ComplianceEscalation {
+  code?: string
+  message?: string
+  severity?: string
+  [key: string]: unknown
+}
+
+export interface LineEvaluationRow {
+  line_id?: string | null
+  /** DB row id for the line item when line_id from extraction is absent. */
+  invoice_line_item_db_id?: number | null
+  line_index?: number | null
+  line_number?: number | null
+  description?: string | null
+  outcome?: string
+  status?: string
+  [key: string]: unknown
+}
+
+export interface InvoicePricingRules {
+  rejected_rules?: unknown[]
+  [key: string]: unknown
+}
+
+export interface ContractRagSource {
+  contract_db_id?: number
+  contract_id?: string | null
+  similarity?: number
+  excerpt?: string
+  excerpt_truncated?: boolean
+  [key: string]: unknown
+}
+
+/** POST /query_contracts — additive fields for UI testing. */
+export interface ContractQueryResponse {
+  answer: string
+  sources?: ContractRagSource[]
+  disclaimer?: string
+}
+
 export interface InvoiceWorkflowReport {
   invoice_id: string
   invoice_db_id?: number // Database ID to distinguish duplicates
@@ -101,7 +159,16 @@ export interface InvoiceWorkflowReport {
   contract_clauses?: InvoiceWorkflowContractClause[]
   next_run_scheduled_in_hours?: number | null
   risk_assessment_score?: number | null
-  risk_percentage?: number | null // Computed from risk_assessment_score * 100
+  risk_percentage?: number | null
+  /** When set, UI should prefer this over inferring band from percentage. */
+  risk_tier?: InvoiceRiskTier | string | null
+  /** Present when S3 is configured on the backend. */
+  s3_url?: string | null
+  review_status?: ComplianceReviewStatus
+  escalations?: ComplianceEscalation[]
+  line_evaluations?: LineEvaluationRow[]
+  audit_trace?: Record<string, unknown>
+  pricing_rules?: InvoicePricingRules | null
   raw?: Record<string, unknown>
   [key: string]: unknown
 }
@@ -159,5 +226,21 @@ export interface DownloadUrlResponse {
   presigned_url: string
   expires_in_seconds: number
   expires_in_hours: number
+}
+
+/** GET /invoices/{id}/pdf_url */
+export interface InvoicePdfUrlResponse {
+  url: string
+}
+
+/** GET /invoices/{id}/compliance_report/latest — shape may vary; common fields: */
+export interface ComplianceReportLatest {
+  pdf_url?: string | null
+  invoice_db_id?: number
+  llm_metadata?: {
+    s3_url?: string | null
+    [key: string]: unknown
+  }
+  [key: string]: unknown
 }
 

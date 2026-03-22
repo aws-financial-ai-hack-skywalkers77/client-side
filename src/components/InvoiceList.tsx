@@ -8,7 +8,12 @@ import {
 } from "@/components/ui/card"
 import type { Invoice } from "@/types"
 import { InlineQueryCell, InlineQueryOverlay } from "@/components/InlineQueryCell"
-import { queryInvoiceAnalytics, getInvoiceDownloadUrl } from "@/api"
+import { openInvoicePdfInNewTab, queryInvoiceAnalytics } from "@/api"
+import {
+  formatRiskAssessmentScoreRaw,
+  resolveRiskDisplay,
+  riskBadgeClasses,
+} from "@/lib/riskDisplay"
 import { useWorkflowReport } from "@/context/WorkflowReportContext"
 import { toast } from "sonner"
 
@@ -75,34 +80,6 @@ const getInvoiceLabel = (invoice: Invoice): string => {
   return truncate(base, 22)
 }
 
-// Get risk level from percentage
-const getRiskLevel = (percentage: number | null | undefined): { level: "good" | "low" | "medium" | "high"; label: string } => {
-  if (percentage === null || percentage === undefined || percentage === 0) {
-    return { level: "good", label: "Good" }
-  }
-  if (percentage <= 30) {
-    return { level: "low", label: "Low" }
-  }
-  if (percentage <= 70) {
-    return { level: "medium", label: "Medium" }
-  }
-  return { level: "high", label: "High" }
-}
-
-// Get risk color classes
-const getRiskColorClasses = (level: "good" | "low" | "medium" | "high"): string => {
-  switch (level) {
-    case "good":
-      return "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
-    case "low":
-      return "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
-    case "medium":
-      return "bg-yellow-50 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800"
-    case "high":
-      return "bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800"
-  }
-}
-
 // Not Available component
 const NotAvailable = () => (
   <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -163,6 +140,7 @@ export function InvoiceList({
         invoice.summary,
         invoice.tax_id,
         invoice.seller_address,
+        invoice.compliance_status,
       ]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(term)),
@@ -175,41 +153,28 @@ export function InvoiceList({
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
   
   // Handle PDF view with S3 presigned URL
-  const handleViewPdf = useCallback(async (invoiceId: number, event: React.MouseEvent) => {
+  const handleViewPdf = useCallback(async (invoice: Invoice, event: React.MouseEvent) => {
     event.stopPropagation()
-    
+    const rowKey = invoice.id
+
     setLoadingPdfIds((prev) => {
-      // Check if already loading
-      if (prev.has(invoiceId)) return prev
+      if (prev.has(rowKey)) return prev
       const next = new Set(prev)
-      next.add(invoiceId)
+      next.add(rowKey)
       return next
     })
-    
+
     try {
-      console.log("Fetching PDF URL for invoice ID:", invoiceId)
-      const response = await getInvoiceDownloadUrl(invoiceId)
-      console.log("PDF URL response:", response)
-      if (response.success && response.presigned_url) {
-        window.open(response.presigned_url, "_blank")
-      } else {
-        toast.error("Failed to retrieve PDF URL")
-      }
-    } catch (error: any) {
-      console.error("Error fetching PDF URL:", error)
-      console.error("Error response:", error?.response?.data)
-      console.error("Error status:", error?.response?.status)
-      console.error("Full error:", error)
-      // Error toast is already shown by API client interceptor, but add more context
-      if (error?.response?.status === 404) {
-        toast.error(`Invoice not found (ID: ${invoiceId})`)
-      } else if (error?.response?.status) {
-        toast.error(`Failed to load PDF (Status: ${error.response.status})`)
-      }
+      await openInvoicePdfInNewTab({
+        invoiceDbId: invoice.id,
+        invoiceBusinessId: invoice.invoice_id,
+      })
+    } catch {
+      toast.error("Could not open PDF — check API base URL (FastAPI host) and CORS.")
     } finally {
       setLoadingPdfIds((prev) => {
         const next = new Set(prev)
-        next.delete(invoiceId)
+        next.delete(rowKey)
         return next
       })
     }
@@ -298,7 +263,7 @@ export function InvoiceList({
                   <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" />
-                      <span>Risk %</span>
+                      <span>Risk</span>
                     </div>
                   </th>
                   <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
@@ -331,9 +296,17 @@ export function InvoiceList({
                 ) : filteredInvoices.length > 0 ? (
                   filteredInvoices.map((invoice) => {
                     const totalAmount = (invoice.subtotal_amount ?? 0) + (invoice.tax_amount ?? 0)
-                    
-                    const riskInfo = getRiskLevel(invoice.risk_percentage)
-                    
+
+                    const riskInfo = resolveRiskDisplay({
+                      risk_tier: invoice.risk_tier,
+                      risk_percentage: invoice.risk_percentage,
+                    })
+                    const scoreRaw = formatRiskAssessmentScoreRaw(invoice.risk_assessment_score)
+                    const hasRiskData =
+                      (typeof invoice.risk_tier === "string" && invoice.risk_tier.trim() !== "") ||
+                      typeof invoice.risk_percentage === "number" ||
+                      typeof invoice.risk_assessment_score === "number"
+
                     return (
                       <tr
                         key={invoice.id}
@@ -366,7 +339,7 @@ export function InvoiceList({
                                 size="sm"
                                 variant="ghost"
                                 className="h-6 w-6 p-0 hover:bg-accent/10 hover:text-accent transition-colors disabled:opacity-50 ml-1"
-                                onClick={(event) => handleViewPdf(invoice.id, event)}
+                                onClick={(event) => handleViewPdf(invoice, event)}
                                 disabled={loadingPdfIds.has(invoice.id) || loading}
                                 title="View PDF"
                               >
@@ -443,49 +416,56 @@ export function InvoiceList({
                           )}
                         </td>
 
-                        {/* Risk Percentage Column */}
+                        {/* Risk (tier + optional score / %) */}
                         <td className="px-3 py-2 border-r border-border">
-                          {invoice.risk_percentage === null || invoice.risk_percentage === undefined ? (
+                          {!hasRiskData ? (
                             <NotAvailable />
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <span
-                                className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${getRiskColorClasses(riskInfo.level)}`}
-                              >
-                                {riskInfo.label}
-                              </span>
-                              <span className="text-sm font-medium text-foreground">
-                                {typeof invoice.risk_percentage === "number" 
-                                  ? invoice.risk_percentage.toFixed(2)
-                                  : invoice.risk_percentage}%
-                              </span>
+                            <div className="flex flex-col gap-0.5 items-start">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span
+                                  className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${riskBadgeClasses(riskInfo.level)}`}
+                                >
+                                  {riskInfo.label}
+                                </span>
+                                {typeof invoice.risk_percentage === "number" ? (
+                                  <span className="text-sm font-medium text-foreground">
+                                    {invoice.risk_percentage.toFixed(2)}%
+                                  </span>
+                                ) : null}
+                              </div>
+                              {scoreRaw ? (
+                                <span className="text-[10px] text-muted-foreground">score {scoreRaw}</span>
+                              ) : null}
                             </div>
                           )}
                         </td>
 
                         {/* Mistakes Column */}
                         <td className="px-3 py-2 border-r border-border">
-                          {(() => {
-                            const status = getMistakesStatus(invoice)
-                            if (status === "has-violations") {
-                              return (
-                                <div className="flex items-center gap-2">
-                                  <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
-                                  <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                                    Mistakes
-                                  </span>
-                                </div>
-                              )
-                            } else if (status === "no-violations") {
-                              return (
-                                <div className="flex items-center gap-2">
-                                  <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
-                                  <span className="text-sm font-semibold text-green-600 dark:text-green-400">
-                                    No mistake
-                                  </span>
-                                </div>
-                              )
-                            } else {
+                          <div className="flex flex-col gap-1 items-start">
+                            {(() => {
+                              const status = getMistakesStatus(invoice)
+                              if (status === "has-violations") {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                    <span className="text-sm font-semibold text-red-600 dark:text-red-400">
+                                      Mistakes
+                                    </span>
+                                  </div>
+                                )
+                              }
+                              if (status === "no-violations") {
+                                return (
+                                  <div className="flex items-center gap-2">
+                                    <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                    <span className="text-sm font-semibold text-green-600 dark:text-green-400">
+                                      No mistake
+                                    </span>
+                                  </div>
+                                )
+                              }
                               return (
                                 <div className="flex items-center gap-2">
                                   <AlertCircle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -494,8 +474,16 @@ export function InvoiceList({
                                   </span>
                                 </div>
                               )
-                            }
-                          })()}
+                            })()}
+                            {invoice.compliance_status ? (
+                              <span
+                                className="inline-flex max-w-[140px] truncate rounded border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+                                title={invoice.compliance_status}
+                              >
+                                {invoice.compliance_status.replace(/_/g, " ")}
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
 
                         {/* Updated Column */}

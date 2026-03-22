@@ -1,9 +1,11 @@
 import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
-import { Loader2, Sparkles, X } from "lucide-react"
+import { ChevronDown, Loader2, Sparkles, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import type { ContractQueryResponse, ContractRagSource } from "@/types"
 
 type AnchorPosition = {
   top: number
@@ -12,9 +14,11 @@ type AnchorPosition = {
   bottom: number
 }
 
+export type InlineQueryResult = string | ContractQueryResponse
+
 type InlineQueryCellProps = {
   placeholder: string
-  onSubmit: (query: string) => Promise<string>
+  onSubmit: (query: string) => Promise<InlineQueryResult>
   disabled?: boolean
   onDismiss?: () => void
   title?: string
@@ -31,7 +35,71 @@ type InlineQueryOverlayProps = {
 type ConversationTurn = {
   id: string
   query: string
-  answer: string
+  answer: InlineQueryResult
+}
+
+function isContractQueryPayload(answer: InlineQueryResult): answer is ContractQueryResponse {
+  return typeof answer === "object" && answer !== null && "answer" in answer
+}
+
+function ContractSourcesBlock({ sources }: { sources: ContractRagSource[] }) {
+  if (sources.length === 0) {
+    return <p className="text-[10px] text-muted-foreground mt-1">No sources returned for this query.</p>
+  }
+  return (
+    <details className="mt-2 rounded-md border border-border/60 bg-muted/20">
+      <summary className="cursor-pointer select-none px-2 py-1.5 text-[10px] font-semibold text-muted-foreground flex items-center gap-1">
+        <ChevronDown className="h-3 w-3 shrink-0 opacity-70" />
+        Sources ({sources.length})
+      </summary>
+      <div className="space-y-2 border-t border-border/40 px-2 py-2 max-h-40 overflow-y-auto">
+        {sources.map((src, i) => (
+          <div key={`${src.contract_id ?? i}-${i}`} className="rounded border border-border/50 bg-background/80 p-2 text-[10px]">
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              {src.contract_id != null && src.contract_id !== "" ? (
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  {String(src.contract_id)}
+                </Badge>
+              ) : null}
+              {typeof src.contract_db_id === "number" ? (
+                <span className="text-muted-foreground">db:{src.contract_db_id}</span>
+              ) : null}
+              {typeof src.similarity === "number" ? (
+                <span className="text-muted-foreground">
+                  sim{" "}
+                  {src.similarity >= 0 && src.similarity <= 1
+                    ? `${(src.similarity * 100).toFixed(1)}%`
+                    : src.similarity.toFixed(3)}
+                </span>
+              ) : null}
+              {src.excerpt_truncated ? (
+                <Badge variant="secondary" className="text-[9px]">
+                  truncated
+                </Badge>
+              ) : null}
+            </div>
+            {src.excerpt ? (
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{src.excerpt}</p>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
+function ContractQueryPayloadView({ payload }: { payload: ContractQueryResponse }) {
+  return (
+    <div className="space-y-1">
+      <div className="space-y-1" dangerouslySetInnerHTML={formatAnswer(payload.answer)} />
+      {payload.disclaimer ? (
+        <p className="text-[10px] text-muted-foreground mt-2 leading-relaxed border-t border-border/40 pt-2">
+          {payload.disclaimer}
+        </p>
+      ) : null}
+      {payload.sources !== undefined ? <ContractSourcesBlock sources={payload.sources} /> : null}
+    </div>
+  )
 }
 
 function normalizeLineBreaks(text: string): string {
@@ -157,7 +225,7 @@ export function InlineQueryCell({
         ) : null}
       </div>
 
-      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
         {history.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             Start a conversation to see contextual insights for this record.
@@ -171,10 +239,11 @@ export function InlineQueryCell({
               </div>
               <div className="rounded-md border border-[#FF9900]/40 dark:border-[#FFB84D]/40 bg-[#FF9900]/5 dark:bg-[#FF9900]/10 px-2 py-1 text-foreground">
                 <p className="font-medium text-[#FF9900] dark:text-[#FFB84D]">AI</p>
-                <div
-                  className="space-y-1"
-                  dangerouslySetInnerHTML={formatAnswer(turn.answer)}
-                />
+                {isContractQueryPayload(turn.answer) ? (
+                  <ContractQueryPayloadView payload={turn.answer} />
+                ) : (
+                  <div className="space-y-1" dangerouslySetInnerHTML={formatAnswer(turn.answer)} />
+                )}
               </div>
             </div>
           ))

@@ -1,10 +1,12 @@
 import axios from "axios"
 import { toast } from "sonner"
 
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8001"
+/** Prefer VITE_API_URL; keep VITE_API_BASE_URL for backwards compatibility. */
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ?? import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8001"
 
 export const apiClient = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   timeout: 300_000,
   headers: {
     "Content-Type": "application/json",

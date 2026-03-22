@@ -164,45 +164,40 @@ export function Invoices() {
       setWorkflowProgress(100)
       setInvoiceBatch(batch)
       
-      // Create maps to match risk_percentage from batch to invoices
-      const riskMapById = new Map<number, number | null>() // Map by database ID
-      const riskMapByInvoiceId = new Map<string, number | null>() // Map by invoice_id string
-      
-      // Build mapping from batch reports
-      // Note: risk_percentage can be 0 (valid), null, or undefined (not set)
+      const riskMapById = new Map<number, number | null>()
+      const riskMapByInvoiceId = new Map<string, number | null>()
+      const riskTierById = new Map<number, string | null>()
+      const riskTierByInvoiceId = new Map<string, string | null>()
+      const riskScoreById = new Map<number, number | null>()
+      const riskScoreByInvoiceId = new Map<string, number | null>()
+
       batch.invoices.forEach((report, index) => {
-        console.log(`Processing report ${index}:`, {
-          invoice_id: report.invoice_id,
-          invoice_db_id: report.invoice_db_id,
-          risk_percentage: report.risk_percentage,
-          risk_assessment_score: report.risk_assessment_score,
-        })
-        
-        // Always map by invoice_id string (works even without db_id)
-        // Include 0 and null as valid values - only skip if truly undefined
         if (report.invoice_id && report.risk_percentage !== undefined) {
           riskMapByInvoiceId.set(report.invoice_id, report.risk_percentage)
-          console.log(`Mapped ${report.invoice_id} -> risk_percentage: ${report.risk_percentage}`)
         }
-        
-        // Also map by invoice_db_id if available
+        if (report.invoice_id && report.risk_tier !== undefined) {
+          riskTierByInvoiceId.set(report.invoice_id, report.risk_tier)
+        }
+        if (report.invoice_id && report.risk_assessment_score !== undefined) {
+          riskScoreByInvoiceId.set(report.invoice_id, report.risk_assessment_score)
+        }
+
         if (report.invoice_db_id !== undefined && report.risk_percentage !== undefined) {
           riskMapById.set(report.invoice_db_id, report.risk_percentage)
-          console.log(`Mapped invoice_db_id ${report.invoice_db_id} -> risk_percentage: ${report.risk_percentage}`)
         }
-        
-        // Fallback: map by position if invoice_db_id not available
-        // This assumes backend returns reports in same order as requested IDs
-        if (report.invoice_db_id === undefined && index < selectedInvoiceIds.length && report.risk_percentage !== undefined) {
+        if (report.invoice_db_id !== undefined && report.risk_tier !== undefined) {
+          riskTierById.set(report.invoice_db_id, report.risk_tier)
+        }
+        if (report.invoice_db_id !== undefined && report.risk_assessment_score !== undefined) {
+          riskScoreById.set(report.invoice_db_id, report.risk_assessment_score)
+        }
+
+        if (report.invoice_db_id === undefined && index < selectedInvoiceIds.length) {
           const dbId = selectedInvoiceIds[index]
-          riskMapById.set(dbId, report.risk_percentage)
-          console.log(`Mapped by position: dbId ${dbId} -> risk_percentage: ${report.risk_percentage}`)
+          if (report.risk_percentage !== undefined) riskMapById.set(dbId, report.risk_percentage)
+          if (report.risk_tier !== undefined) riskTierById.set(dbId, report.risk_tier)
+          if (report.risk_assessment_score !== undefined) riskScoreById.set(dbId, report.risk_assessment_score)
         }
-      })
-      
-      console.log('Risk maps:', {
-        byId: Array.from(riskMapById.entries()),
-        byInvoiceId: Array.from(riskMapByInvoiceId.entries()),
       })
       
       // Refresh invoices from backend first
@@ -217,34 +212,32 @@ export function Invoices() {
         risk_percentage: inv.risk_percentage,
       })))
       
-      // Merge the risk_percentage data from workflow results into the fetched invoices
       const updatedInvoices = response.invoices.map((invoice) => {
-        let riskPercentage: number | null | undefined = undefined
-        
-        // Try to find risk_percentage by database ID first (most reliable)
-        riskPercentage = riskMapById.get(invoice.id)
-        
-        // Fallback: try by invoice_id string (this should catch most cases)
+        let riskPercentage: number | null | undefined = riskMapById.get(invoice.id)
         if (riskPercentage === undefined && invoice.invoice_id) {
           riskPercentage = riskMapByInvoiceId.get(invoice.invoice_id)
         }
-        
-        // If we found a risk percentage (including null) from workflow, use it
-        if (riskPercentage !== undefined) {
-          console.log(`Updating invoice ${invoice.invoice_id} (ID: ${invoice.id}) with risk_percentage: ${riskPercentage}`)
-          return { ...invoice, risk_percentage: riskPercentage }
+
+        let riskTier: string | null | undefined = riskTierById.get(invoice.id)
+        if (riskTier === undefined && invoice.invoice_id) {
+          riskTier = riskTierByInvoiceId.get(invoice.invoice_id)
         }
-        
-        // Keep existing risk_percentage if no match found
-        console.log(`No risk_percentage match for invoice ${invoice.invoice_id} (ID: ${invoice.id}), keeping existing: ${invoice.risk_percentage}`)
+
+        let riskScore: number | null | undefined = riskScoreById.get(invoice.id)
+        if (riskScore === undefined && invoice.invoice_id) {
+          riskScore = riskScoreByInvoiceId.get(invoice.invoice_id)
+        }
+
+        const patch: Partial<Invoice> = {}
+        if (riskPercentage !== undefined) patch.risk_percentage = riskPercentage
+        if (riskTier !== undefined) patch.risk_tier = riskTier
+        if (riskScore !== undefined) patch.risk_assessment_score = riskScore
+
+        if (Object.keys(patch).length > 0) {
+          return { ...invoice, ...patch }
+        }
         return invoice
       })
-      
-      console.log('Updated invoices:', updatedInvoices.map(inv => ({
-        id: inv.id,
-        invoice_id: inv.invoice_id,
-        risk_percentage: inv.risk_percentage,
-      })))
       
       // Update state with merged invoices (this will trigger localStorage save)
       setInvoices(updatedInvoices)
