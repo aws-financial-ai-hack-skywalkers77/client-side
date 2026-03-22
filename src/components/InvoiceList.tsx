@@ -260,7 +260,7 @@ export function InvoiceList({
                       <span>Summary</span>
                     </div>
                   </th>
-                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
+                  <th className="w-[min(15rem,28vw)] min-w-[13.5rem] max-w-[17rem] px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <TrendingUp className="h-4 w-4" />
                       <span>Risk</span>
@@ -272,13 +272,13 @@ export function InvoiceList({
                       <span>Mistakes</span>
                     </div>
                   </th>
-                  <th className="px-3 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
+                  <th className="w-[7.5rem] min-w-[7.5rem] max-w-[8rem] px-2 py-2 text-left text-sm font-semibold text-foreground border-r border-border whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3.5 w-3.5 shrink-0" />
                       <span>Updated</span>
                     </div>
                   </th>
-                  <th className="w-32 px-3 py-2 text-right text-sm font-semibold text-foreground">
+                  <th className="w-[200px] min-w-[200px] max-w-[200px] px-2 py-2 text-right text-sm font-semibold text-foreground">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
@@ -417,11 +417,11 @@ export function InvoiceList({
                         </td>
 
                         {/* Risk (tier + optional score / %) */}
-                        <td className="px-3 py-2 border-r border-border">
+                        <td className="w-[min(15rem,28vw)] min-w-[13.5rem] max-w-[17rem] px-3 py-2 border-r border-border align-middle">
                           {!hasRiskData ? (
                             <NotAvailable />
                           ) : (
-                            <div className="flex flex-col gap-0.5 items-start">
+                            <div className="flex flex-col gap-0.5 items-start min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span
                                   className={`inline-flex items-center px-2 py-1 rounded text-xs font-semibold border ${riskBadgeClasses(riskInfo.level)}`}
@@ -487,23 +487,26 @@ export function InvoiceList({
                         </td>
 
                         {/* Updated Column */}
-                        <td className="px-3 py-2 border-r border-border">
+                        <td className="w-[7.5rem] min-w-[7.5rem] max-w-[8rem] px-2 py-2 border-r border-border align-middle">
                           {isEmpty(invoice.updated_at) ? (
                             <NotAvailable />
                           ) : (
-                            <span className="text-sm text-muted-foreground">
+                            <span
+                              className="text-xs text-muted-foreground tabular-nums whitespace-nowrap block truncate"
+                              title={formatDate(invoice.updated_at)}
+                            >
                               {formatDate(invoice.updated_at)}
                             </span>
                           )}
                         </td>
 
                         {/* Action Column — fixed footprint so every row matches */}
-                        <td className="relative w-[220px] min-w-[220px] max-w-[220px] px-3 py-2 text-right align-middle">
+                        <td className="relative w-[200px] min-w-[200px] max-w-[200px] px-2 py-2 text-right align-middle">
                           <Button
                             type="button"
                             size="sm"
                             variant="outline"
-                            className="group h-[52px] w-full min-h-[52px] max-h-[52px] gap-2 rounded-full border-primary/40 bg-primary/5 px-3 py-0 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-neutral-700"
+                            className="group h-[52px] w-full min-h-[52px] max-h-[52px] gap-1.5 rounded-full border-primary/40 bg-primary/5 px-2.5 py-0 text-left text-primary shadow-sm transition hover:border-primary/50 hover:bg-primary/10 hover:text-neutral-700"
                             onClick={(event) => {
                               event.stopPropagation()
                               const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect()
