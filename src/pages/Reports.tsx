@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ContractClauseDetailDialog } from "@/components/ContractClauseDetailDialog"
 import { PieChart } from "@/components/PieChart"
 import { useWorkflowReport } from "@/context/WorkflowReportContext"
 import {
@@ -27,6 +28,7 @@ import {
   getComplianceReportLatest,
   openInvoicePdfInNewTab,
 } from "@/api"
+import { cn } from "@/lib/utils"
 import {
   formatRiskAssessmentScoreRaw,
   resolveRiskDisplay,
@@ -34,6 +36,7 @@ import {
 } from "@/lib/riskDisplay"
 import { toast } from "sonner"
 import type {
+  ClauseReference,
   ComplianceEscalation,
   ComplianceReportLatest,
   InvoiceWorkflowContractClause,
@@ -133,6 +136,16 @@ type FlattenedClause = InvoiceWorkflowContractClause & {
   invoice_id: string
 }
 
+function formatViolationClauseReference(ref: ClauseReference): string {
+  const clausePart =
+    ref.clause_id != null && String(ref.clause_id).trim() !== ""
+      ? ` · clause ${ref.clause_id}`
+      : ""
+  const base =
+    `${ref.contract_id || ""}${clausePart} ${ref.vendor_name ? `(${ref.vendor_name})` : ""}`.trim()
+  return base || "N/A"
+}
+
 export function Reports() {
   const navigate = useNavigate()
   const { invoiceBatch } = useWorkflowReport()
@@ -141,8 +154,27 @@ export function Reports() {
     Record<number, ComplianceReportLatest | { error: true }>
   >({})
   const [complianceLoading, setComplianceLoading] = useState(false)
+  const [clauseDetailOpen, setClauseDetailOpen] = useState(false)
+  const [clauseDetailSelection, setClauseDetailSelection] = useState<{
+    contractDbId: number
+    clauseId: string
+  } | null>(null)
 
   const hasData = invoiceBatch && invoiceBatch.invoices.length > 0
+
+  const openClauseDetailFromTile = useCallback((clause: FlattenedClause) => {
+    const dbId = clause.contract_db_id
+    const raw = clause.clause_id
+    const cId = raw != null && String(raw).trim() !== "" ? String(raw) : null
+    if (typeof dbId !== "number" || !cId) {
+      toast.error(
+        "This match needs a contract database id and clause id from the workflow to load clause text.",
+      )
+      return
+    }
+    setClauseDetailSelection({ contractDbId: dbId, clauseId: cId })
+    setClauseDetailOpen(true)
+  }, [])
 
   const uniqueReportRows = useMemo(() => {
     if (!invoiceBatch?.invoices.length) return []
@@ -260,37 +292,6 @@ export function Reports() {
     }
   }, [invoiceBatch])
 
-  const handleExportPdf = () => {
-    window.print()
-  }
-
-  if (!hasData) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border border-dashed border-border bg-card/60 px-12 py-16 text-center shadow-sm">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FF9900]/10 dark:bg-[#FF9900]/20 text-[#FF9900] dark:text-[#FFB84D]">
-          <FileText className="h-7 w-7" />
-        </div>
-        <div className="space-y-2">
-          <h2 className="text-2xl font-semibold text-foreground">Run a workflow to generate reports</h2>
-          <p className="max-w-xl text-sm text-muted-foreground">
-            Select one or more invoices on the Invoices screen and run the workflow. Your analytics,
-            violations, and contract clause matches will be summarised here automatically.
-          </p>
-        </div>
-        <Button type="button" onClick={() => navigate("/invoices")} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Go to invoices
-        </Button>
-      </div>
-    )
-  }
-
-  const generatedAt = new Date(invoiceBatch!.generated_at).toLocaleString()
-  const topViolations = Array.from(violationBreakdown.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4)
-  const topClauses = flattenedClauses
-    .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
-    .slice(0, 6)
-
   // Group violations by invoice_id (allowing duplicates)
   const groupedViolationsByInvoice = useMemo(() => {
     if (!invoiceBatch) return new Map<string, { invoice: InvoiceWorkflowReport; violations: FlattenedViolation[] }[]>()
@@ -399,6 +400,37 @@ export function Reports() {
     },
     [complianceByDbId],
   )
+
+  const handleExportPdf = () => {
+    window.print()
+  }
+
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 rounded-3xl border border-dashed border-border bg-card/60 px-12 py-16 text-center shadow-sm">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#FF9900]/10 dark:bg-[#FF9900]/20 text-[#FF9900] dark:text-[#FFB84D]">
+          <FileText className="h-7 w-7" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold text-foreground">Run a workflow to generate reports</h2>
+          <p className="max-w-xl text-sm text-muted-foreground">
+            Select one or more invoices on the Invoices screen and run the workflow. Your analytics,
+            violations, and contract clause matches will be summarised here automatically.
+          </p>
+        </div>
+        <Button type="button" onClick={() => navigate("/invoices")} className="gap-2">
+          <ArrowLeft className="h-4 w-4" />
+          Go to invoices
+        </Button>
+      </div>
+    )
+  }
+
+  const generatedAt = new Date(invoiceBatch!.generated_at).toLocaleString()
+  const topViolations = Array.from(violationBreakdown.entries()).sort((a, b) => b[1] - a[1]).slice(0, 4)
+  const topClauses = flattenedClauses
+    .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
+    .slice(0, 6)
 
   return (
     <div className="space-y-6">
@@ -709,7 +741,7 @@ export function Reports() {
                                     <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Clause</p>
                                     <p className="text-xs font-semibold text-foreground break-words">
                                       {typeof violation.clause_reference === "object" && violation.clause_reference !== null
-                                        ? `${violation.clause_reference.contract_id || ""} ${violation.clause_reference.vendor_name ? `(${violation.clause_reference.vendor_name})` : ""}`.trim() || "N/A"
+                                        ? formatViolationClauseReference(violation.clause_reference)
                                         : typeof violation.clause_reference === "string"
                                           ? violation.clause_reference
                                           : violation.contract_clause_reference || "N/A"}
@@ -923,7 +955,10 @@ export function Reports() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 px-6 pt-5 pb-3">
           <div>
             <CardTitle className="text-lg font-semibold">Contract clause alignment</CardTitle>
-            <CardDescription>Top clause matches surfaced per invoice with similarity scores.</CardDescription>
+            <CardDescription>
+              Top clause matches per invoice with similarity scores. Click a tile to load full clause text when
+              contract and clause ids are present.
+            </CardDescription>
           </div>
           <Badge variant="secondary" className="gap-1">
             <Link2 className="h-3.5 w-3.5" />
@@ -945,11 +980,25 @@ export function Reports() {
                 topClauses.map((clause, index) => {
                   const similarityPercentage = clause.similarity !== undefined ? Math.round((clause.similarity ?? 0) * 100) : 0
                   const similarityLevel = similarityPercentage >= 80 ? "high" : similarityPercentage >= 60 ? "medium" : "low"
-                  
+                  const clauseIdLabel =
+                    clause.clause_id != null && String(clause.clause_id).trim() !== ""
+                      ? String(clause.clause_id)
+                      : null
+                  const canOpenClauseDetail =
+                    typeof clause.contract_db_id === "number" && clauseIdLabel != null
+
                   return (
-                  <div
-                    key={`${clause.invoice_id}-${clause.contract_id}-${index}`}
-                      className="rounded-lg border border-border/50 bg-gradient-to-br from-card/90 to-muted/20 p-4 shadow-sm transition-all hover:border-[#FF9900]/40 dark:hover:border-[#FFB84D]/40 hover:shadow-md min-w-0"
+                  <button
+                    type="button"
+                    key={`${clause.invoice_id}-${clause.contract_id}-${clauseIdLabel ?? ""}-${index}`}
+                    onClick={() => openClauseDetailFromTile(clause)}
+                    disabled={!canOpenClauseDetail}
+                    className={cn(
+                      "rounded-lg border border-border/50 bg-gradient-to-br from-card/90 to-muted/20 p-4 shadow-sm min-w-0 w-full text-left",
+                      canOpenClauseDetail
+                        ? "cursor-pointer transition-all hover:border-[#FF9900]/40 dark:hover:border-[#FFB84D]/40 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        : "cursor-not-allowed opacity-70",
+                    )}
                   >
                       {/* Header */}
                       <div className="flex items-start justify-between gap-2 mb-3">
@@ -970,10 +1019,18 @@ export function Reports() {
                         </div>
                       </div>
                       
-                      {/* Contract ID */}
-                      <div className="mb-3">
-                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Contract ID</p>
-                        <p className="text-sm font-bold text-foreground break-words">{clause.contract_id}</p>
+                      {/* Contract & clause IDs */}
+                      <div className="mb-3 space-y-2">
+                        <div>
+                          <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Contract ID</p>
+                          <p className="text-sm font-bold text-foreground break-words">{clause.contract_id}</p>
+                        </div>
+                        {clauseIdLabel ? (
+                          <div>
+                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Clause ID</p>
+                            <p className="text-sm font-bold text-foreground break-words font-mono">{clauseIdLabel}</p>
+                          </div>
+                        ) : null}
                       </div>
                       
                       {/* Similarity Progress Bar */}
@@ -1000,13 +1057,13 @@ export function Reports() {
                       </div>
                       
                       {/* Additional info if available */}
-                      {(clause as any).vendor_name && (
+                      {clause.vendor_name ? (
                         <div className="mt-3 pt-3 border-t border-border/30">
                           <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Vendor</p>
-                          <p className="text-xs font-medium text-foreground">{(clause as any).vendor_name}</p>
+                          <p className="text-xs font-medium text-foreground">{clause.vendor_name}</p>
                         </div>
-                      )}
-                    </div>
+                      ) : null}
+                    </button>
                   )
                 })
               )}
@@ -1014,6 +1071,16 @@ export function Reports() {
           </ScrollArea>
         </CardContent>
       </Card>
+
+      <ContractClauseDetailDialog
+        open={clauseDetailOpen}
+        onOpenChange={(open) => {
+          setClauseDetailOpen(open)
+          if (!open) setClauseDetailSelection(null)
+        }}
+        contractDbId={clauseDetailSelection?.contractDbId ?? null}
+        clauseId={clauseDetailSelection?.clauseId ?? null}
+      />
     </div>
   )
 }

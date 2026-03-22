@@ -1,6 +1,7 @@
 import type {
   Contract,
   ComplianceReportLatest,
+  ContractClauseGetResponse,
   ContractQueryResponse,
   DocumentType,
   DownloadUrlResponse,
@@ -102,6 +103,29 @@ export async function getContractById(id: number): Promise<Contract> {
     metadata: Contract
   }>(`/contracts/${id}`)
   return response.data.metadata
+}
+
+/**
+ * GET /contracts/{contract_db_id}/clause?clause_id=...
+ * clause_id is sent as a query param so values with spaces or slashes are encoded safely.
+ */
+export async function getContractClause(
+  contractDbId: number,
+  clauseId: string,
+): Promise<ContractClauseGetResponse> {
+  const trimmed = clauseId.trim()
+  if (!trimmed) {
+    throw new Error("clause_id is required")
+  }
+  const response = await apiClient.get<ContractClauseGetResponse>(
+    `/contracts/${contractDbId}/clause`,
+    { params: { clause_id: trimmed } },
+  )
+  const data = response.data
+  if (!data?.success || !data.clause || typeof data.clause !== "object") {
+    throw new Error("Invalid clause response from server")
+  }
+  return data
 }
 
 export async function checkHealth() {

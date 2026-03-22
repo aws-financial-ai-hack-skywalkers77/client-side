@@ -31,6 +31,24 @@ export interface Contract {
   updated_at?: string | null
 }
 
+/** GET /contracts/{contract_db_id}/clause?clause_id= */
+export interface ContractClauseDetail {
+  clause_id: string
+  clause_type?: string | null
+  section_title?: string | null
+  clause_text?: string | null
+  page_number?: number | null
+  [key: string]: unknown
+}
+
+export interface ContractClauseGetResponse {
+  success: boolean
+  contract_db_id: number
+  contract_id?: string
+  vendor_name?: string | null
+  clause: ContractClauseDetail
+}
+
 export interface InvoiceWorkflowRule {
   unit_price?: number | null
   tolerance_percent?: number | null
@@ -65,6 +83,8 @@ export interface ViolationReasoning {
 
 export interface ClauseReference {
   contract_id?: string
+  /** Present when analyze_invoices returns structured clause alignment. */
+  clause_id?: string | number | null
   vendor_name?: string
   similarity?: number
   service_types?: string[]
@@ -96,6 +116,11 @@ export interface InvoiceWorkflowEvaluationSummary {
 
 export interface InvoiceWorkflowContractClause {
   contract_id: string
+  /** Contracts table PK — used with clause_id to load full clause text. */
+  contract_db_id?: number | null
+  /** Present when analyze_invoices includes clause id on clause matches. */
+  clause_id?: string | number | null
+  vendor_name?: string | null
   similarity?: number | null
   [key: string]: unknown
 }
